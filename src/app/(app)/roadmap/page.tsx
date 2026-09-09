@@ -1,5 +1,4 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
-
+import { RoadmapScreen } from "@/components/aporia/learning-screens";
 export default function RoadmapPage() {
-  return <RoutePlaceholder eyebrow="Направление" title="Карта навыков появится из твоей цели." description="Вместо общего курса ты увидишь маршрут с зависимостями, практикой и ясной причиной для каждого следующего шага." actionHref="/diagnostic" actionLabel="Перейти к диагностике" />;
+  return <RoadmapScreen />;
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   BookOpen,
   ChartLineUp,
@@ -9,13 +10,14 @@ import {
   House,
   List,
   MapTrifold,
-  Sparkle,
   Target,
   UserCircle,
+  ArrowUpRight,
+  Pause,
+  Play,
+  SignOut,
+  X,
 } from "@phosphor-icons/react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -24,8 +26,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { LearningProvider } from "@/components/aporia/learning-provider";
 import { navigationItems, pageTitles, utilityItems } from "@/lib/navigation";
+import { useProfile } from "@/components/aporia/profile-provider";
+import { ProfileAvatar, Rune } from "@/components/aporia/identity";
 
 const icons = {
   "/dashboard": House,
@@ -39,109 +43,182 @@ const icons = {
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const renderLink = (item: (typeof navigationItems)[number] | (typeof utilityItems)[number]) => {
+  const { href } = useProfile();
+  const link = (item: { href: string; label: string }) => {
     const Icon = icons[item.href as keyof typeof icons];
-    const isActive = pathname === item.href;
-
+    const active = pathname === href(item.href);
     return (
       <Link
-        className={cn(
-          "flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isActive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-        )}
-        href={item.href}
+        className={`nav-item ${active ? "active" : ""}`}
+        href={href(item.href)}
         key={item.href}
         onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
       >
-        <Icon aria-hidden="true" size={18} weight={isActive ? "fill" : "regular"} />
+        <Icon
+          size={19}
+          weight={active ? "fill" : "regular"}
+          aria-hidden="true"
+        />
         {item.label}
+        {active && <span className="nav-dot" />}
       </Link>
     );
   };
-
   return (
-    <nav aria-label="Основная навигация" className="flex flex-1 flex-col gap-1">
-      {navigationItems.map(renderLink)}
-      <Separator className="my-4" />
-      {utilityItems.map(renderLink)}
+    <nav aria-label="Основная навигация" className="app-navigation">
+      <span className="nav-label">ТВОЁ ПРОСТРАНСТВО</span>
+      {navigationItems.map(link)}
+      <span className="nav-label second-label">ЛИЧНОЕ</span>
+      {utilityItems.map(link)}
     </nav>
   );
 }
-
-function Brand() {
+export function Brand() {
+  const { href } = useProfile();
   return (
-    <Link className="flex items-center gap-3" href="/dashboard">
-      <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-        <Sparkle aria-hidden="true" size={19} weight="fill" />
+    <Link
+      href={href("/dashboard")}
+      className="brand"
+      aria-label="Aporia — главная"
+    >
+      <span className="brand-mark">
+        <Rune />
       </span>
       <span>
-        <span className="block text-sm font-semibold tracking-tight">Aporia</span>
-        <span className="block text-xs text-muted-foreground">Личный учебный контур</span>
+        aporia<span className="brand-period">.</span>
       </span>
     </Link>
   );
 }
-
-export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
+function AppShellContent({ children }: { children: React.ReactNode }) {
+  const { profile, href, preview, motion, setMotion } = useProfile();
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const title = pageTitles[pathname] ?? "Aporia";
-
+  const route = pathname.replace(/^\/preview/, "") || "/dashboard";
   return (
-    <div className="min-h-[100dvh] bg-background">
-      <a className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground" href="#main-content">
+    <div className={`app-frame ${motion ? "motion-on" : "motion-off"}`}>
+      <div className="ambient-background" aria-hidden="true">
+        <span />
+        <span />
+      </div>
+      <a className="skip-link" href="#main-content">
         Перейти к содержимому
       </a>
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar p-4 lg:flex">
+      <aside className="desktop-sidebar">
         <Brand />
-        <Separator className="my-6" />
         <Navigation />
-        <div className="mt-auto rounded-lg border border-sidebar-border bg-sidebar-accent/45 p-3">
-          <p className="text-xs leading-5 text-muted-foreground">Начни с честного разговора о цели, затем Aporia соберёт твой маршрут.</p>
-          <Link className="mt-3 inline-flex text-xs font-medium text-primary hover:underline" href="/onboarding">
-            Начать знакомство
+        <div className="sidebar-bottom">
+          <div className="track-stamp">
+            <span className="track-symbol">Py</span>
+            <div>
+              <strong>Python backend</strong>
+              <span>Твой учебный маршрут</span>
+            </div>
+          </div>
+          <Link className="sidebar-profile" href={href("/profile")}>
+            <ProfileAvatar profile={profile} className="size-9" />
+            <span>
+              <strong>{profile.displayName || "Твой профиль"}</strong>
+              <small>
+                {profile.onboardingComplete
+                  ? "Цель определена"
+                  : "Давай познакомимся"}
+              </small>
+            </span>
+            <ArrowUpRight size={17} />
           </Link>
         </div>
       </aside>
-
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur lg:px-8">
-          <div className="flex items-center gap-3">
-            <Sheet>
+      <div className="app-workspace">
+        <header className="app-topbar">
+          <div className="topbar-location">
+            <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button aria-label="Открыть меню" className="lg:hidden" size="icon" variant="ghost">
-                  <List aria-hidden="true" size={20} />
-                </Button>
+                <button
+                  type="button"
+                  className="icon-button mobile-menu"
+                  aria-label="Открыть меню"
+                >
+                  <List size={21} />
+                </button>
               </SheetTrigger>
-              <SheetContent className="w-[18rem] border-sidebar-border bg-sidebar p-0" side="left">
-                <SheetHeader className="p-5">
-                  <SheetTitle><Brand /></SheetTitle>
-                  <SheetDescription className="sr-only">Навигация Aporia</SheetDescription>
+              <SheetContent
+                side="left"
+                className="mobile-sheet"
+                showCloseButton={false}
+              >
+                <button
+                  type="button"
+                  className="icon-button absolute right-3 top-3"
+                  aria-label="Закрыть меню"
+                  onClick={() => setOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Меню Aporia</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Выбери раздел приложения
+                  </SheetDescription>
+                  <Brand />
                 </SheetHeader>
-                <Separator />
-                <div className="flex min-h-[calc(100dvh-5.5rem)] flex-col p-4">
-                  <Navigation />
-                </div>
+                <Navigation onNavigate={() => setOpen(false)} />
               </SheetContent>
             </Sheet>
-            <div>
-              <p className="text-xs text-muted-foreground">Твой учебный контур</p>
-              <h1 className="text-sm font-semibold tracking-tight">{title}</h1>
-            </div>
-          </div>
-          <Link className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" href="/profile">
-            <span className="hidden text-right sm:block">
-              <span className="block text-xs font-medium">Твой профиль</span>
-              <span className="block text-xs text-muted-foreground">ещё не настроен</span>
+            <span className="breadcrumb">
+              Моё пространство <span>/</span>
             </span>
-            <Avatar className="size-8 border border-border">
-              <AvatarFallback className="bg-secondary text-xs text-secondary-foreground">A</AvatarFallback>
-            </Avatar>
-          </Link>
+            <strong>
+              {pageTitles[route] ??
+                (route === "/onboarding" ? "Знакомство" : "Сегодня")}
+            </strong>
+          </div>
+          <div className="topbar-actions">
+            {preview && (
+              <Link className="preview-pill" href="/login">
+                Предпросмотр
+              </Link>
+            )}
+            <button
+              className="icon-button motion-toggle"
+              onClick={() => setMotion(!motion)}
+              aria-label={motion ? "Выключить анимацию" : "Включить анимацию"}
+              aria-pressed={motion}
+              title={motion ? "Выключить анимацию" : "Включить анимацию"}
+            >
+              {motion ? <Pause size={17} /> : <Play size={17} />}
+            </button>
+            {!preview && (
+              <form action="/auth/logout" method="post">
+                <button className="icon-button" aria-label="Выйти из аккаунта">
+                  <SignOut size={19} />
+                </button>
+              </form>
+            )}
+            <Link href={href("/profile")} aria-label="Открыть профиль">
+              <ProfileAvatar profile={profile} className="size-9" />
+            </Link>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8" id="main-content">{children}</main>
+        <main id="main-content" className="app-main" tabIndex={-1}>
+          {children}
+        </main>
+        <footer className="app-footer">
+          <span>
+            aporia <span>·</span> маленькие шаги, глубокое понимание
+          </span>
+          <span>PYTHON BACKEND / 01</span>
+        </footer>
       </div>
     </div>
+  );
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <LearningProvider>
+      <AppShellContent>{children}</AppShellContent>
+    </LearningProvider>
   );
 }

@@ -1,5 +1,4 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
-
+import { ProfileEditor } from "@/components/aporia/profile-editor";
 export default function ProfilePage() {
-  return <RoutePlaceholder eyebrow="Твоя отправная точка" title="Профиль будет хранить только полезный контекст." description="Цель, опыт, темп и предпочитаемый формат практики помогут ментору давать точные следующие шаги." actionHref="/onboarding" actionLabel="Настроить профиль" />;
+  return <ProfileEditor />;
 }

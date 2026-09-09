@@ -1,3 +1,3 @@
 export type LearningMode = "learn" | "help";
 
-export type EvidenceKind = "exercise" | "project" | "reflection";
+export type EvidenceKind = "diagnostic" | "exercise" | "review" | "project";

@@ -1,0 +1,27 @@
+name: Отзыв по Aporia alpha
+description: Ошибка или затруднение в полном учебном цикле
+title: "[Alpha] "
+labels: []
+body:
+  - type: textarea
+    id: flow
+    attributes:
+      label: Что ты пытался сделать?
+      placeholder: Например, продолжить задание после повторного входа.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Что произошло и что ожидалось?
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Устройство и браузер
+  - type: textarea
+    id: detail
+    attributes:
+      label: Подробности без личных данных
+      description: Не прикладывай ключи, пароли, email, чужой код или приватные фотографии.

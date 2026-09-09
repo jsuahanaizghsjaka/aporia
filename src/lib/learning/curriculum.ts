@@ -1,0 +1,76 @@
+export const curriculum = [
+  {
+    id: "python",
+    title: "Основы Python",
+    detail: "Типы данных, условия, циклы и функции",
+    short: "Python",
+    resource: "https://docs.python.org/3/tutorial/",
+    prerequisite: null,
+  },
+  {
+    id: "git",
+    title: "Git и рабочий процесс",
+    detail: "Коммиты, ветки и история изменений",
+    short: "Git",
+    resource: "https://git-scm.com/book/ru/v2",
+    prerequisite: "python",
+  },
+  {
+    id: "sql",
+    title: "SQL и базы данных",
+    detail: "Таблицы, связи и запросы",
+    short: "SQL",
+    resource: "https://www.postgresql.org/docs/current/tutorial.html",
+    prerequisite: "python",
+  },
+  {
+    id: "http",
+    title: "HTTP и REST",
+    detail: "Запросы, ответы и устройство API",
+    short: "HTTP",
+    resource: "https://developer.mozilla.org/ru/docs/Web/HTTP/Overview",
+    prerequisite: "python",
+  },
+  {
+    id: "fastapi",
+    title: "Твой первый API",
+    detail: "FastAPI, валидация и работа с данными",
+    short: "FastAPI",
+    resource: "https://fastapi.tiangolo.com/tutorial/",
+    prerequisite: "http",
+  },
+  {
+    id: "auth",
+    title: "Аутентификация",
+    detail: "Пользователи, сессии и права доступа",
+    short: "Auth",
+    resource: "https://fastapi.tiangolo.com/tutorial/security/",
+    prerequisite: "fastapi",
+  },
+  {
+    id: "testing",
+    title: "Тестирование",
+    detail: "Проверяем поведение нашего приложения",
+    short: "Tests",
+    resource: "https://docs.pytest.org/en/stable/getting-started.html",
+    prerequisite: "fastapi",
+  },
+  {
+    id: "docker",
+    title: "Docker и запуск",
+    detail: "Собираем проект и готовим к публикации",
+    short: "Docker",
+    resource: "https://docs.docker.com/get-started/",
+    prerequisite: "testing",
+  },
+] as const;
+
+export const teachingStages = [
+  "ASK",
+  "HINT_1",
+  "HINT_2",
+  "EXPLAIN",
+  "PARTIAL_SOLUTION",
+  "FULL_SOLUTION",
+] as const;
+export type TeachingStage = (typeof teachingStages)[number];

@@ -1,15 +1,21 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./aporia.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
-  --font-heading: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    var(--font-geist-sans), "Geist Fallback", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-mono:
+    var(--font-geist-mono), "Geist Mono Fallback", ui-monospace, monospace;
+  --font-heading:
+    var(--font-geist-sans), "Geist Fallback", ui-sans-serif, system-ui,
+    sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,98 +52,4 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-height: 100vh;
-  margin: 0;
-  font-family: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-:root {
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-}
-
-.dark {
-  --background: oklch(0.17 0.014 145);
-  --foreground: oklch(0.95 0.01 110);
-  --card: oklch(0.205 0.016 145);
-  --card-foreground: oklch(0.95 0.01 110);
-  --popover: oklch(0.205 0.016 145);
-  --popover-foreground: oklch(0.95 0.01 110);
-  --primary: oklch(0.82 0.13 125);
-  --primary-foreground: oklch(0.19 0.026 145);
-  --secondary: oklch(0.255 0.018 145);
-  --secondary-foreground: oklch(0.9 0.01 110);
-  --muted: oklch(0.255 0.018 145);
-  --muted-foreground: oklch(0.7 0.018 130);
-  --accent: oklch(0.29 0.022 145);
-  --accent-foreground: oklch(0.95 0.01 110);
-  --destructive: oklch(0.67 0.18 25);
-  --border: oklch(0.34 0.02 145 / 75%);
-  --input: oklch(0.34 0.02 145 / 75%);
-  --ring: oklch(0.82 0.13 125);
-  --chart-1: oklch(0.82 0.13 125);
-  --chart-2: oklch(0.67 0.09 125);
-  --chart-3: oklch(0.52 0.06 125);
-  --chart-4: oklch(0.4 0.035 125);
-  --chart-5: oklch(0.3 0.02 125);
-  --sidebar: oklch(0.145 0.012 145);
-  --sidebar-foreground: oklch(0.9 0.01 110);
-  --sidebar-primary: oklch(0.82 0.13 125);
-  --sidebar-primary-foreground: oklch(0.19 0.026 145);
-  --sidebar-accent: oklch(0.23 0.018 145);
-  --sidebar-accent-foreground: oklch(0.95 0.01 110);
-  --sidebar-border: oklch(0.3 0.017 145);
-  --sidebar-ring: oklch(0.82 0.13 125);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-    color-scheme: dark;
-  }
 }
