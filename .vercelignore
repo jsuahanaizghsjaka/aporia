@@ -1,0 +1,9 @@
+.git
+node_modules
+.next
+.env*
+!.env.example
+.aporia-update
+.aporia-backups
+.playwright-cli
+*.zip

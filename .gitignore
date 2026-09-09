@@ -1,5 +1,7 @@
 /node_modules
 /.next/
+/.aporia-update/
+/.aporia-backups/
 /out/
 /coverage
 .env*
