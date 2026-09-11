@@ -12,6 +12,7 @@ create policy "Read own profile" on public.profiles for select to authenticated 
 create policy "Create own profile" on public.profiles for insert to authenticated with check ((select auth.uid()) = id);
 create policy "Update own profile" on public.profiles for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 grant select, insert, update on public.profiles to authenticated;
+grant select on public.profiles to service_role;
 revoke all on public.profiles from anon;
 
 create table public.mentor_messages (
