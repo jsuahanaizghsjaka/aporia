@@ -32,7 +32,7 @@ const step = (state, action, date = now) =>
   applyAction(state, action, profile, randomUUID(), date);
 function diagnosed(correct = true) {
   let state = step(initialLearningState(), { type: "start_diagnostic" });
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 9; i++) {
     const q = questionById(activeSession(state).questions[i]);
     state = step(state, {
       type: "answer",
@@ -75,15 +75,15 @@ test("diagnostic requires confirmed goal; resumes one session; no hints or answe
   assert.equal(view.solution, null);
   assert.equal(initialLearningState().sessions.length, 0);
 });
-test("diagnostic persists all eight results and yields conservative mastery", () => {
+test("diagnostic persists all nine results and yields conservative mastery", () => {
   const state = diagnosed();
   assert.equal(state.diagnosticComplete, true);
-  assert.equal(state.evidence.length, 8);
+  assert.equal(state.evidence.length, 9);
   assert.equal(activeSession(state), null);
   assert.equal(state.sessions[0].completedAt, now.toISOString());
   const progress = skillProgress(state, "python");
-  assert.equal(progress.mastery, 14);
-  assert.ok(progress.confidence < 10);
+  assert.equal(progress.mastery, 26);
+  assert.ok(progress.confidence < 20);
   assert.throws(
     () => step(state, { type: "start_diagnostic" }),
     /уже пройдена/,
@@ -232,7 +232,7 @@ test("one active project; artifact drafts and AI reviews never certify executabl
 });
 test("weekly review uses a real seven-day window and requires explicit focus confirmation", () => {
   const state = diagnosed();
-  assert.equal(weeklySummary(state, now).evidence, 8);
+  assert.equal(weeklySummary(state, now).evidence, 9);
   assert.equal(
     weeklySummary(state, new Date("2026-09-16T10:00:00Z")).evidence,
     0,
@@ -258,8 +258,8 @@ test("weekly focus uses recent resource feedback without silently applying it", 
   );
 });
 test("question bank has unique IDs, valid choices, correct keys, and rejects wrong values", () => {
-  assert.equal(questions.length, 40);
-  assert.equal(new Set(questions.map((q) => q.id)).size, 40);
+  assert.equal(questions.length, 41);
+  assert.equal(new Set(questions.map((q) => q.id)).size, 41);
   for (const q of questions) {
     assert.equal(grade(q, q.answers[0]), true, q.id);
     assert.equal(grade(q, "definitely incorrect"), false, q.id);

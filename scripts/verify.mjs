@@ -18,7 +18,15 @@ for (const key of [
   "OPENAI_MODEL",
 ])
   env[key] = "";
-for (const task of ["lint", "test", "build", "test:http"]) {
+for (const task of [
+  "lint",
+  "test",
+  "build",
+  "test:http",
+  "test:auth",
+  "test:ai",
+  "test:milestones",
+]) {
   const result = spawnSync(process.execPath, [npm, "run", task], {
     env,
     stdio: "inherit",

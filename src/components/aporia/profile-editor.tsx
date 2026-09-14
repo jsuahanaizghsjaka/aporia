@@ -5,6 +5,10 @@ import { Camera, Check, Trash } from "@phosphor-icons/react";
 import { validateAvatar, type ProfileView } from "@/lib/profile/schema";
 import { ProfileAvatar } from "./identity";
 import { useProfile } from "./profile-provider";
+import { ProfileFields } from "./profile-fields";
+import { GoalEditor } from "./goal-editor";
+import { MemoryProposal } from "./memory-proposal";
+import { profileFromMemory } from "@/lib/profile/memory";
 
 const presets = [
   { value: "rune", label: "Руна" },
@@ -184,7 +188,7 @@ function ProfileForm({
   onSaved: () => void;
   onChanged: () => void;
 }) {
-  const { saveProfile } = useProfile();
+  const { saveProfile, preview } = useProfile();
   const [draft, setDraft] = useState(initial);
   const [baseline, setBaseline] = useState(initial);
   const [photo, setPhoto] = useState<Blob | null | undefined>();
@@ -399,98 +403,26 @@ function ProfileForm({
             <p className="panel-description">
               Ты решаешь, что Aporia знает о тебе.
             </p>
-            <div className="form-grid mt-6">
-              <label className="form-field">
-                Как тебя называть
-                <input
-                  name="displayName"
-                  autoComplete="nickname"
-                  maxLength={60}
-                  value={draft.displayName}
-                  onChange={(event) =>
-                    update("displayName", event.target.value)
-                  }
-                  placeholder="Твоё имя"
-                />
-              </label>
-              <label className="form-field">
-                Время в день
-                <select
-                  value={draft.dailyMinutes}
-                  onChange={(event) =>
-                    update("dailyMinutes", Number(event.target.value))
-                  }
-                >
-                  {Array.from(
-                    new Set([
-                      10,
-                      15,
-                      20,
-                      25,
-                      30,
-                      45,
-                      60,
-                      90,
-                      120,
-                      draft.dailyMinutes,
-                    ]),
-                  )
-                    .sort((a, b) => a - b)
-                    .map((minutes) => (
-                      <option key={minutes} value={minutes}>
-                        {minutes} минут
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="form-field full-width">
-                Одна цель на этот маршрут
-                <textarea
-                  maxLength={500}
-                  value={draft.goal}
-                  onChange={(event) => update("goal", event.target.value)}
-                  placeholder="Например, написать API для своего проекта"
-                />
-              </label>
-              <label className="form-field full-width">
-                Твой опыт
-                <textarea
-                  maxLength={1000}
-                  value={draft.experience}
-                  onChange={(event) => update("experience", event.target.value)}
-                  placeholder="Что уже пробовал в программировании?"
-                />
-              </label>
-              <label className="form-field">
-                Интересы
-                <input
-                  maxLength={500}
-                  value={draft.interests}
-                  onChange={(event) => update("interests", event.target.value)}
-                  placeholder="Музыка, спорт, книги…"
-                />
-              </label>
-              <label className="form-field">
-                Как удобнее учиться
-                <input
-                  maxLength={500}
-                  value={draft.preferences}
-                  onChange={(event) =>
-                    update("preferences", event.target.value)
-                  }
-                  placeholder="Через примеры, маленькие задачи…"
-                />
-              </label>
-              <label className="form-field full-width">
-                Контекст
-                <textarea
-                  maxLength={1000}
-                  value={draft.context}
-                  onChange={(event) => update("context", event.target.value)}
-                  placeholder="Учёба, работа и то, что важно учитывать"
-                />
-              </label>
-            </div>
+            {!preview && (
+              <MemoryProposal
+                disabled={changed || busy}
+                version={initial.version ?? 0}
+                onApply={(candidate) => {
+                  setDraft(profileFromMemory(draft, candidate));
+                  setChanged(true);
+                  onChanged();
+                }}
+              />
+            )}
+            <ProfileFields
+              extended
+              value={draft}
+              onChange={(value) => {
+                setDraft(value);
+                setChanged(true);
+                onChanged();
+              }}
+            />
           </section>
           <div className="form-actions">
             <button className="primary-button" disabled={busy || !changed}>
@@ -564,6 +496,7 @@ export function ProfileEditor() {
         onSaved={() => setSaved(true)}
         onChanged={() => setSaved(false)}
       />
+      <GoalEditor />
     </div>
   );
 }

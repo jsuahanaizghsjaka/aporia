@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { GoalSummary } from "./goal-editor";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -40,6 +41,7 @@ export function Dashboard() {
           <Code size={15} /> Python backend
         </span>
       </div>
+      {ready && <GoalSummary />}
       <section
         className="mission-panel glass-panel"
         aria-labelledby="mission-title"

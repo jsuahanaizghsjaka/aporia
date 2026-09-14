@@ -22,6 +22,9 @@ test("Postgres migrations enforce owner isolation, server-only evidence and atom
       "202609080001_profiles_and_memory.sql",
       "202609080002_learning_loop.sql",
       "202609080003_profile_versions.sql",
+      "202609110004_auth_profiles.sql",
+      "202609120005_onboarding.sql",
+      "202609130006_goals_and_skills.sql",
     ])
       await db.exec(
         await readFile(
@@ -133,7 +136,7 @@ test("Postgres migrations enforce owner isolation, server-only evidence and atom
     ]);
     assert.equal(
       (await db.query("select * from public.profiles")).rows.length,
-      0,
+      1,
     );
     assert.equal(
       (await db.query("select * from storage.objects")).rows.length,

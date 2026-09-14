@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readGoal } from "@/lib/goals/storage";
 import { getSession } from "@/lib/supabase/session";
 import { isSameOrigin } from "@/lib/auth/request";
 import { actionSchema } from "@/lib/learning/types";
@@ -83,6 +84,16 @@ export async function POST(request: Request) {
           version,
         },
         { status: 409 },
+      );
+    if (
+      input.action.type === "start_diagnostic" &&
+      !state.activeSession &&
+      !state.diagnosticComplete &&
+      !(await readGoal(session.client, session.user.id))
+    )
+      return Response.json(
+        { error: "Сначала подтверди учебную цель в профиле." },
+        { status: 422 },
       );
     let next;
     try {

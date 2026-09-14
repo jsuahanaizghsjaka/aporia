@@ -8,6 +8,37 @@ const configured = {
   OPENAI_API_KEY: "sk-test-secret",
   OPENAI_MODEL: "test-model",
 };
+test("auth-only doctor needs no AI/admin keys and only probes public Auth settings", async () => {
+  const env = {
+    NEXT_PUBLIC_SUPABASE_URL: configured.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      configured.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  };
+  assert.ok(
+    inspectEnvironment(env, { authOnly: true }).every(
+      (check) => check.status === "pass",
+    ),
+  );
+  const calls = [];
+  const results = await probeServices(
+    env,
+    async (url, init) => {
+      calls.push(url);
+      assert.equal(init.method, "GET");
+      return Response.json({ external: { email: true } });
+    },
+    { authOnly: true },
+  );
+  assert.deepEqual(calls, [`${env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`]);
+  assert.equal(results[0].status, "pass");
+  assert.equal(
+    inspectEnvironment(
+      { ...env, NEXT_PUBLIC_OTHER: "sk-exposed" },
+      { authOnly: true },
+    ).find((check) => check.name === "public-env").status,
+    "fail",
+  );
+});
 test("doctor detects missing values and accidental exposure without printing secret values", () => {
   assert.ok(inspectEnvironment({}).some((check) => check.status === "fail"));
   assert.ok(

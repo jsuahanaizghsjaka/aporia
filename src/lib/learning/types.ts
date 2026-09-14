@@ -23,10 +23,10 @@ const sessionSchema = z.object({
   id: z.uuid(),
   kind: z.enum(["diagnostic", "practice", "review"]),
   mode: z.enum(["learn", "help"]),
-  questions: z.array(z.string().max(60)).max(8),
-  index: z.number().int().min(0).max(8),
+  questions: z.array(z.string().max(60)).max(10),
+  index: z.number().int().min(0).max(10),
   stage: z.number().int().min(0).max(5),
-  results: z.array(resultSchema).max(8),
+  results: z.array(resultSchema).max(10),
   startedAt: z.iso.datetime(),
   completedAt: z.iso.datetime().nullable(),
   minutes: z.number().int().min(5).max(120),
@@ -131,6 +131,7 @@ export type LearningProfile = {
   goal: string;
 };
 export type Question = {
+  kind?: "multiple_choice" | "short_answer" | "code_reasoning" | "coding";
   id: string;
   skill: SkillId;
   prompt: string;
@@ -144,7 +145,7 @@ export type Question = {
 };
 export type PublicQuestion = Pick<
   Question,
-  "id" | "skill" | "prompt" | "code" | "choices"
+  "id" | "skill" | "prompt" | "code" | "choices" | "kind"
 >;
 export type LearningView = {
   state: LearningState;

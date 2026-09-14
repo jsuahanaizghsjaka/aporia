@@ -1,0 +1,195 @@
+.lesson-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.65fr);
+  align-items: center;
+  gap: 28px;
+  padding: clamp(24px, 4vw, 44px);
+}
+.lesson-intro h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.3;
+  max-width: 18ch;
+}
+.lesson-intro p {
+  color: var(--soft);
+  line-height: 1.8;
+  margin-top: 18px;
+  max-width: 55ch;
+}
+.lesson-intro .form-actions {
+  margin-top: 28px;
+}
+.lesson-zero .lesson-note {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--soft);
+  margin-top: 20px;
+}
+.lesson-review-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.lesson-review-heading h2 {
+  font-size: 24px;
+  margin-top: 8px;
+}
+.lesson-summary {
+  margin-top: 24px;
+}
+.lesson-summary > div {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.45fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.lesson-summary dt {
+  font-size: 13px;
+  color: var(--soft);
+}
+.lesson-summary dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.lesson-review fieldset,
+.profile-card fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.lesson-zero .chat-header {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lesson-zero .chat-header span {
+  font-size: 12px;
+}
+.lesson-chat-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 18px 16px;
+}
+.lesson-chat-actions > span {
+  font-size: 11px;
+  color: var(--soft);
+}
+.lesson-chat-actions .text-link {
+  min-height: 40px;
+}
+.lesson-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 18px 14px;
+}
+.lesson-choices button {
+  min-height: 40px;
+}
+.lesson-progress {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--mint);
+  margin-top: 16px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.lesson-progress::-webkit-progress-bar {
+  background: var(--border);
+}
+.lesson-progress::-webkit-progress-value {
+  background: var(--mint);
+}
+.chat-typing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--soft);
+  font-size: 13px;
+}
+.chat-typing > span {
+  display: flex;
+  gap: 4px;
+}
+.chat-typing i {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: lesson-typing 1.2s ease-in-out infinite;
+}
+.chat-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.chat-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes lesson-typing {
+  0%,
+  70%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@media (max-width: 900px) {
+  .lesson-zero .chat-side {
+    display: block;
+    order: 1;
+  }
+}
+@media (max-width: 760px) {
+  .lesson-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .lesson-intro > :last-child {
+    max-width: 240px;
+    margin-inline: auto;
+  }
+  .lesson-summary > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .lesson-review-heading .secondary-button {
+    width: 100%;
+    justify-content: center;
+  }
+  .lesson-zero .chat-composer textarea,
+  .lesson-review input,
+  .lesson-review textarea {
+    font-size: 16px;
+  }
+  .lesson-chat-actions > span {
+    display: none;
+  }
+  .lesson-zero .chat-messages {
+    overscroll-behavior: contain;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-typing i {
+    animation: none;
+  }
+}
+.incomplete-answer {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--muted-foreground);
+}
+.skip-link:not(:focus) {
+  clip-path: inset(100%);
+}

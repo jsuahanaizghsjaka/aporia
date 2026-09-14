@@ -2,11 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "./server";
-import {
-  emptyProfile,
-  profileSchema,
-  type ProfileView,
-} from "@/lib/profile/schema";
+import { destinationForUser } from "@/lib/auth/flow";
+import { profileSchema, type ProfileView } from "@/lib/profile/schema";
 
 export const getSession = cache(async () => {
   const client = await createClient();
@@ -22,7 +19,24 @@ export async function requireSession() {
   return session;
 }
 
-export async function readProfile(): Promise<ProfileView> {
+export async function redirectSignedInUser(next: string | null = null) {
+  const session = await getSession();
+  if (!session) return;
+  let destination;
+  try {
+    destination = await destinationForUser(
+      session.client,
+      session.user.id,
+      next,
+    );
+  } catch {
+    // Keep the login form usable during a database outage; do not loop redirects.
+    return "Не удалось загрузить профиль. Попробуй войти ещё раз чуть позже.";
+  }
+  redirect(destination);
+}
+
+export const readProfile = cache(async (): Promise<ProfileView> => {
   const { client, user } = await requireSession();
   const { data, error } = await client
     .from("profiles")
@@ -33,7 +47,10 @@ export async function readProfile(): Promise<ProfileView> {
     throw new Error(
       "Не удалось загрузить профиль. Проверь подключение базы данных.",
     );
-  if (!data) return emptyProfile;
+  if (!data)
+    throw new Error(
+      "Профиль аккаунта не найден. Примени миграцию 202609110004_auth_profiles.sql.",
+    );
   const profile = profileSchema.parse(data.data);
   const path =
     typeof data.avatar_path === "string" &&
@@ -49,4 +66,4 @@ export async function readProfile(): Promise<ProfileView> {
     avatarUrl: signed?.data?.signedUrl ?? null,
     version: Number(data.version),
   };
-}
+});

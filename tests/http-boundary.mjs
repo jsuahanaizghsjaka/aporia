@@ -156,15 +156,16 @@ try {
   assert.equal(result.response.status, 200);
   assert.equal(result.data.question.answers, undefined);
   assert.equal((await previewAction({ type: "hint" })).response.status, 422);
-  for (let i = 0; i < 8; i++)
+  for (let i = 0; i < 9; i++)
     await previewAction({ type: "answer", answer: "" });
   assert.equal(state.diagnosticComplete, true);
-  assert.equal(state.evidence.length, 8);
+  assert.equal(state.evidence.length, 9);
   await previewAction({ type: "start_session", mode: "learn" });
   const requestId = randomUUID();
+  const evidenceBeforeAnswer = state.evidence.length;
   await previewAction({ type: "answer", answer: "10" }, requestId);
   await previewAction({ type: "answer", answer: "10" }, requestId);
-  assert.equal(state.evidence.length, 9);
+  assert.equal(state.evidence.length, evidenceBeforeAnswer + 1);
   await previewAction({ type: "next" });
   assert.equal(state.activeSession, null);
   await previewAction({ type: "choose_project", projectId: "music" });

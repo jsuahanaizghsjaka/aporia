@@ -1,0 +1,100 @@
+.goal-panel {
+  padding: clamp(20px, 3vw, 32px);
+  margin-block: 24px;
+  min-width: 0;
+  scroll-margin-top: 100px;
+}
+.goal-panel h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.2;
+  margin: 12px 0;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.goal-panel p,
+.goal-panel li {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.goal-panel ul {
+  list-style: disc;
+  padding-left: 22px;
+  margin: 16px 0;
+}
+.goal-fields {
+  display: grid;
+  gap: 18px;
+  border: 0;
+  min-width: 0;
+  margin-top: 24px;
+}
+.goal-fields textarea {
+  min-height: 92px;
+}
+.memory-proposal {
+  margin-top: 24px;
+}
+.memory-review {
+  margin-block: 18px;
+  padding: 20px;
+  background: rgba(185, 151, 231, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+.memory-review dl {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.memory-review dl > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr);
+  gap: 14px;
+}
+.memory-review dt {
+  color: var(--muted-foreground);
+}
+.memory-review dd {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.form-field > label {
+  display: grid;
+  gap: 8px;
+}
+.skill-root {
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.skill-root h2 {
+  font-size: 24px;
+  margin: 8px 0;
+}
+.skill-root p {
+  color: var(--muted-foreground);
+}
+.code-answer {
+  font-family: var(--font-geist-mono), monospace;
+  min-height: 150px;
+  resize: vertical;
+}
+.goal-panel input,
+.goal-panel textarea,
+.memory-proposal button {
+  max-width: 100%;
+}
+.goal-panel .form-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .goal-panel input,
+  .goal-panel textarea,
+  .code-answer {
+    font-size: 16px;
+  }
+  .memory-review dl > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}

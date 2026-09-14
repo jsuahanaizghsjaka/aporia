@@ -1,4 +1,5 @@
 // Imported only by server routes and tests. Answer keys never enter the client bundle.
+import { checkDouble } from "./code-check.ts";
 import type { Question, SkillId } from "./types.ts";
 export const concepts: Record<SkillId, string> = {
   python:
@@ -615,6 +616,28 @@ export const questions: Question[] = [
     ["В слое контейнера", "В отдельном persistent volume", "В stdout"],
   ),
 ];
+questions.push({
+  id: "python.coding.d",
+  skill: "python",
+  kind: "coding",
+  prompt:
+    "Напиши функцию double(n), возвращающую удвоенное целое число. Можно ввести выражение, return или функцию с одним return. Проверяем арифметический поднабор: n, целые числа, скобки, +, -, *, //, %. Без циклов, импортов и вызовов функций.",
+  answers: ["n * 2"],
+  hints: ["Нужно удвоить значение.", "Сложи n с самим собой."],
+  explanation:
+    "Функция возвращает удвоенное значение. Проверка выполняет только описанный арифметический поднабор на десяти входных значениях, а не произвольную Python-программу.",
+  partial: "return n + …",
+  solution: "def double(n):\n    return n * 2",
+});
+// Numeric short answer keeps the original HTTP question and answer stable.
+const httpDiagnostic = questions.find((q) => q.id === "http.d")!;
+httpDiagnostic.choices = undefined;
+export function questionKind(q: Question) {
+  return (
+    q.kind ??
+    (q.code ? "code_reasoning" : q.choices ? "multiple_choice" : "short_answer")
+  );
+}
 export function questionById(id: string): Question {
   const question = questions.find((item) => item.id === id);
   if (!question) throw new Error("Задание не найдено.");
@@ -623,6 +646,7 @@ export function questionById(id: string): Question {
 const normalize = (value: string) =>
   value.trim().replace(/;$/, "").replace(/\s+/g, " ").toLowerCase();
 export function grade(question: Question, answer: string) {
+  if (question.kind === "coding") return checkDouble(answer);
   // Case-insensitive only for SQL/HTTP terms and commands without case-sensitive data.
   const normalized =
     question.skill === "sql" || question.skill === "http"

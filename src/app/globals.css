@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./aporia.css";
+@import "./lesson-zero.css";
+@import "./memory-goals.css";
 
 @custom-variant dark (&:is(.dark *));
 

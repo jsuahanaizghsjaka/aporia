@@ -1,6 +1,12 @@
 import { teachingStages } from "./curriculum.ts";
 import { activeSession, dueReviews, recommendedSkill } from "./selectors.ts";
-import { concepts, grade, questionById, questions } from "./question-bank.ts";
+import {
+  concepts,
+  grade,
+  questionById,
+  questionKind,
+  questions,
+} from "./question-bank.ts";
 import type {
   LearningAction,
   LearningProfile,
@@ -300,7 +306,7 @@ export function applyAction(
 }
 function publicQuestion(question: Question) {
   const { id, skill, prompt, code, choices } = question;
-  return { id, skill, prompt, code, choices };
+  return { id, skill, prompt, code, choices, kind: questionKind(question) };
 }
 export function learningView(state: LearningState): LearningView {
   const session = activeSession(state);

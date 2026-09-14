@@ -1,4 +1,8 @@
 import { Dashboard } from "@/components/aporia/dashboard";
-export default function DashboardPage() {
+import { readProfile } from "@/lib/supabase/session";
+import { redirect } from "next/navigation";
+export default async function DashboardPage() {
+  const profile = await readProfile();
+  if (!profile.onboardingComplete) redirect("/onboarding");
   return <Dashboard />;
 }

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useSkillGraph } from "./use-skill-graph";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -34,10 +35,35 @@ const kinds = {
 export function SkillRows({ resources = false }: { resources?: boolean }) {
   const { view, send } = useLearning();
   const { href } = useProfile();
+  const graph = useSkillGraph();
+  if (graph.error)
+    return (
+      <div className="notice" role="alert">
+        {graph.error}{" "}
+        <button className="text-link" onClick={graph.refresh}>
+          Повторить
+        </button>
+      </div>
+    );
+  if (!graph.data) return <p role="status">Загружаем карту навыков…</p>;
   return (
     <div className="glass-panel skill-table">
+      <div className="skill-root">
+        <span className="eyebrow">КАРТА НАВЫКОВ</span>
+        <h2>Python backend</h2>
+        <p>8 направлений · уровень подтверждается ответами и практикой.</p>
+      </div>
       {curriculum.map((skill, index) => {
-        const progress = skillProgress(view.state, skill.id);
+        const evidence = skillProgress(view.state, skill.id);
+        const stored = graph.data!.user_skills.find(
+          (s) => s.skill_id === skill.id,
+        )!;
+        const progress = {
+          ...evidence,
+          mastery: stored.mastery_score,
+          confidence: stored.confidence,
+          count: stored.evidence_count,
+        };
         const prerequisite = curriculum.find(
           (item) => item.id === skill.prerequisite,
         );
@@ -49,6 +75,12 @@ export function SkillRows({ resources = false }: { resources?: boolean }) {
             <div className="skill-copy">
               <h2>{skill.title}</h2>
               <p>{skill.detail}</p>
+              <small>
+                Python backend → {skill.short}
+                {stored.last_practiced
+                  ? ` · Последняя практика: ${date(stored.last_practiced)}`
+                  : " · Пока нет практики"}
+              </small>
               {resources && prerequisite && (
                 <small>Опора: {prerequisite.short}</small>
               )}

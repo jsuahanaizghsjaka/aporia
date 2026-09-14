@@ -1,9 +1,8 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/supabase/session";
+import { redirectSignedInUser } from "@/lib/supabase/session";
 import { supabaseConfig } from "@/lib/supabase/config";
 import { Landing } from "@/components/aporia/landing";
 export const dynamic = "force-dynamic";
 export default async function Home() {
-  if (await getSession()) redirect("/dashboard");
+  await redirectSignedInUser();
   return <Landing configured={!!supabaseConfig()} />;
 }

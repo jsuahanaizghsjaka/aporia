@@ -14,6 +14,7 @@ import { LearningGate, useLearning } from "./learning-provider";
 import { activeSession, dailyMission } from "@/lib/learning/selectors";
 import { curriculum, teachingStages } from "@/lib/learning/curriculum";
 import type { PublicQuestion } from "@/lib/learning/types";
+import { useGoal } from "./goal-editor";
 import { MentorChat } from "./mentor-chat";
 export function QuestionInput({
   question,
@@ -51,6 +52,21 @@ export function QuestionInput({
             </label>
           ))}
         </fieldset>
+      ) : question.kind === "coding" ? (
+        <label className="field-label">
+          Твой код
+          <textarea
+            className="learning-input code-answer"
+            name="code"
+            rows={5}
+            maxLength={1000}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={disabled}
+          />
+        </label>
       ) : (
         <label className="field-label">
           Твой ответ
@@ -275,6 +291,7 @@ function Exercise() {
 function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
   const { profile, href } = useProfile();
   const { view, send, busy } = useLearning();
+  const goalState = useGoal();
   const [mode, setMode] = useState<"learn" | "help">("learn");
   if (!profile.onboardingComplete)
     return (
@@ -292,10 +309,36 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
     return (
       <section className="glass-panel empty-panel">
         <h2>Начнём с точки старта.</h2>
-        <p>Восемь небольших заданий помогут понять, что уже получается.</p>
+        <p>Девять небольших заданий помогут понять, что уже получается.</p>
         <Link className="primary-button" href={href("/diagnostic")}>
           Пройти диагностику
           <ArrowRight size={17} />
+        </Link>
+      </section>
+    );
+  if (diagnostic && (!goalState.loaded || goalState.error || !goalState.goal))
+    return (
+      <section className="glass-panel empty-panel">
+        <h2>
+          {!goalState.loaded
+            ? "Загружаем цель…"
+            : "Сначала выберем результат обучения."}
+        </h2>
+        {goalState.error ? (
+          <p role="alert">
+            {goalState.error}{" "}
+            <button
+              className="text-link"
+              onClick={() => void goalState.refresh()}
+            >
+              Повторить
+            </button>
+          </p>
+        ) : (
+          <p>Подтверди одну цель и критерии успеха в профиле.</p>
+        )}
+        <Link className="primary-button" href={href("/profile") + "#goal"}>
+          Определить цель
         </Link>
       </section>
     );
@@ -313,7 +356,7 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
       </h2>
       <p>
         {diagnostic
-          ? "По одному заданию на каждую тему. Отвечай самостоятельно; если тема новая, выбери «Пока не знаю». Уйти и продолжить позже можно в любой момент."
+          ? "Девять заданий по восьми темам: выбор ответа, короткий ответ, чтение кода и небольшая функция. Отвечай самостоятельно; если тема новая, выбери «Пока не знаю». Уйти и продолжить позже можно в любой момент."
           : mission.reason}
       </p>
       {!diagnostic && (

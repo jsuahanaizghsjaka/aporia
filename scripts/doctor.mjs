@@ -10,7 +10,7 @@ function jwtRole(key) {
     return null;
   }
 }
-export function inspectEnvironment(env) {
+export function inspectEnvironment(env, { authOnly = false } = {}) {
   const checks = [];
   const add = (name, ok, message) =>
     checks.push({ name, status: ok ? "pass" : "fail", message });
@@ -89,18 +89,32 @@ export function inspectEnvironment(env) {
     Boolean(env.OPENAI_MODEL?.trim()),
     env.OPENAI_MODEL?.trim() ? "Модель AI задана." : "Задай OPENAI_MODEL.",
   );
-  return checks;
+  return authOnly
+    ? checks.filter((check) =>
+        ["supabase-url", "supabase-public-key", "public-env"].includes(
+          check.name,
+        ),
+      )
+    : checks;
 }
 
-export async function probeServices(env, fetcher = fetch) {
-  if (inspectEnvironment(env).some((check) => check.status !== "pass"))
+export async function probeServices(
+  env,
+  fetcher = fetch,
+  { authOnly = false } = {},
+) {
+  if (
+    inspectEnvironment(env, { authOnly }).some(
+      (check) => check.status !== "pass",
+    )
+  )
     return [];
   const root = env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "");
   const publicKey =
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const secretKey = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
-  const headers = (key) => ({
+  const headers = (key = "") => ({
     apikey: key,
     ...(key.startsWith("eyJ") ? { Authorization: `Bearer ${key}` } : {}),
   });
@@ -140,62 +154,69 @@ export async function probeServices(env, fetcher = fetch) {
     },
   ];
   return Promise.all(
-    probes.map(async (probe) => {
-      try {
-        const response = await fetcher(probe.url, {
-          method: "GET",
-          headers: probe.headers,
-          redirect: "error",
-          signal: AbortSignal.timeout(10000),
-        });
-        if (!response.ok)
+    probes
+      .filter((probe) => !authOnly || probe.name === "auth")
+      .map(async (probe) => {
+        try {
+          const response = await fetcher(probe.url, {
+            method: "GET",
+            headers: probe.headers,
+            redirect: "error",
+            signal: AbortSignal.timeout(10000),
+          });
+          if (!response.ok)
+            return {
+              name: probe.name,
+              status: "fail",
+              message: `Сервис ответил HTTP ${response.status}. Проверь настройки и миграции.`,
+            };
+          if (!probe.validate(await response.json()))
+            return {
+              name: probe.name,
+              status: "fail",
+              message:
+                "Ответ получен, но настройки или схема не соответствуют Aporia.",
+            };
           return {
             name: probe.name,
-            status: "fail",
-            message: `Сервис ответил HTTP ${response.status}. Проверь настройки и миграции.`,
+            status: "pass",
+            message: "Проверка чтения прошла.",
           };
-        if (!probe.validate(await response.json()))
+        } catch {
           return {
             name: probe.name,
             status: "fail",
             message:
-              "Ответ получен, но настройки или схема не соответствуют Aporia.",
+              "Сервис недоступен или ответ не распознан. Проверь сеть и настройки.",
           };
-        return {
-          name: probe.name,
-          status: "pass",
-          message: "Проверка чтения прошла.",
-        };
-      } catch {
-        return {
-          name: probe.name,
-          status: "fail",
-          message:
-            "Сервис недоступен или ответ не распознан. Проверь сеть и настройки.",
-        };
-      }
-    }),
+        }
+      }),
   );
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.some((arg) => !["--live", "--json"].includes(arg))) {
-    console.error("Использование: npm run doctor -- [--live] [--json]");
+  if (args.some((arg) => !["--live", "--json", "--auth"].includes(arg))) {
+    console.error(
+      "Использование: npm run doctor -- [--auth] [--live] [--json]",
+    );
     process.exitCode = 2;
     return;
   }
   const { loadEnvConfig } = require("@next/env");
   // Same .env precedence as the production build. No secret values are printed.
   loadEnvConfig(process.cwd(), false, { info() {}, error() {} });
-  const checks = inspectEnvironment(process.env);
+  const authOnly = args.includes("--auth");
+  const checks = inspectEnvironment(process.env, { authOnly });
   if (args.includes("--live"))
-    checks.push(...(await probeServices(process.env)));
+    checks.push(...(await probeServices(process.env, fetch, { authOnly })));
   const report = {
     ready: checks.every((check) => check.status === "pass"),
     liveRequested: args.includes("--live"),
     checks,
-    note: "Проверка конфигурации не заменяет вход двумя аккаунтами, загрузку фото и Responses API. Локальный /preview работает без ключей.",
+    note: authOnly
+      ? "Проверяются настройки Auth, не сам вход. Нужны миграция 004 и ручной цикл регистрации/выхода/повторного входа. AI и серверный ключ для этапа 3 не требуются."
+      : "Проверка конфигурации не заменяет вход двумя аккаунтами, загрузку фото и Responses API. Локальный /preview работает без ключей.",
   };
   if (args.includes("--json")) console.log(JSON.stringify(report, null, 2));
   else {

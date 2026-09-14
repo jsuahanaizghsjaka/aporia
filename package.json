@@ -10,7 +10,11 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "doctor": "node scripts/doctor.mjs",
     "test:http": "node tests/http-boundary.mjs",
-    "verify": "node scripts/verify.mjs"
+    "test:auth": "node tests/auth-http.mjs",
+    "test:ai": "node --experimental-strip-types tests/onboarding-http.mjs",
+    "test:browser": "node tests/browser-suite.mjs",
+    "verify": "node scripts/verify.mjs",
+    "test:milestones": "node --experimental-strip-types tests/stages7-10-http.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -37,6 +41,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "playwright": "1.62.1",
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "typescript": "^5"

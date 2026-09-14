@@ -1,27 +1,35 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { safeNext } from "@/lib/auth/request";
 import { ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { Rune } from "./identity";
 export function AuthForm({
   signup = false,
   configured,
   confirmationError = false,
+  initialError = "",
+  next = "/dashboard",
 }: {
   signup?: boolean;
   configured: boolean;
   confirmationError?: boolean;
+  initialError?: string;
+  next?: string;
 }) {
   const [error, setError] = useState(
     confirmationError
-      ? "Ссылка подтверждения недействительна или устарела. Попробуй войти или запросить регистрацию снова."
-      : "",
+      ? "Ссылка подтверждения недействительна или устарела. Открой последнее письмо в браузере регистрации. Если почта уже подтверждена, войди с паролем."
+      : initialError,
   );
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const submitting = useRef(false);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current || !configured) return;
+    submitting.current = true;
     setError("");
     setMessage("");
     setPending(true);
@@ -34,20 +42,29 @@ export function AuthForm({
           action: signup ? "signup" : "login",
           email: form.get("email"),
           password: form.get("password"),
+          next: safeNext(next),
         }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      if (result.next) window.location.assign(result.next);
-      else setMessage(result.message);
-    } catch (cause) {
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(
+          typeof result?.error === "string"
+            ? result.error
+            : "Сервис временно недоступен. Попробуй снова.",
+        );
+        return;
+      }
+      if (typeof result?.next === "string")
+        window.location.assign(safeNext(result.next));
+      else if (typeof result?.message === "string") setMessage(result.message);
+      else setError("Сервер вернул неполный ответ. Попробуй снова.");
+    } catch {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : "Не удалось связаться с сервером. Попробуй снова.",
+        "Не удалось связаться с сервером. Проверь соединение и попробуй снова.",
       );
     } finally {
       setPending(false);
+      submitting.current = false;
     }
   }
   return (
@@ -75,7 +92,7 @@ export function AuthForm({
             </Link>
           </div>
         )}
-        <form onSubmit={submit}>
+        <form onSubmit={submit} aria-busy={pending}>
           <label className="form-field">
             Email
             <input
@@ -85,7 +102,7 @@ export function AuthForm({
               required
               maxLength={254}
               placeholder="you@example.com"
-              disabled={!configured}
+              disabled={!configured || pending}
             />
           </label>
           <label className="form-field">
@@ -100,7 +117,7 @@ export function AuthForm({
                 maxLength={128}
                 required
                 placeholder="Не менее 8 символов"
-                disabled={!configured}
+                disabled={!configured || pending}
               />
               <button
                 type="button"

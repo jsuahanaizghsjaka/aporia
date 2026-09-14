@@ -1,71 +1,45 @@
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { isSameOrigin, safeNext } from "@/lib/auth/request";
-const inputSchema = z.object({
-  action: z.enum(["login", "signup"]),
-  email: z.email().max(254),
-  password: z.string().min(8).max(128),
-  next: z.string().nullable().optional(),
-});
+import { isSameOrigin } from "@/lib/auth/request";
+import { authenticate, credentialsSchema } from "@/lib/auth/flow";
+const headers = { "Cache-Control": "private, no-store" };
 export async function POST(request: Request) {
   if (!isSameOrigin(request))
     return Response.json(
       { error: "Недопустимый источник запроса." },
       { status: 403 },
     );
-  const client = await createClient();
-  if (!client)
-    return Response.json(
-      {
-        error:
-          "Сервис аккаунтов пока не подключён. Можно посмотреть интерфейс без регистрации.",
-      },
-      { status: 503 },
-    );
   let input;
   try {
-    input = inputSchema.parse(await request.json());
+    input = credentialsSchema.parse(await request.json());
   } catch {
     return Response.json(
       { error: "Проверь email. Пароль должен содержать от 8 до 128 символов." },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
-  if (input.action === "signup") {
-    const { data, error } = await client.auth.signUp({
-      email: input.email,
-      password: input.password,
-      options: {
-        emailRedirectTo: `${new URL(request.url).origin}/auth/callback?next=/onboarding`,
-      },
-    });
-    if (error)
+  try {
+    const client = await createClient();
+    if (!client)
       return Response.json(
         {
           error:
-            "Не удалось создать аккаунт. Проверь данные или попробуй позже.",
+            "Сервис аккаунтов пока не подключён. Можно посмотреть интерфейс без регистрации.",
         },
-        { status: 400 },
+        { status: 503, headers },
       );
-    return Response.json(
-      data.session
-        ? { next: "/onboarding" }
-        : {
-            message:
-              "Проверь почту: если регистрация доступна, мы отправили ссылку для подтверждения.",
-          },
+    const result = await authenticate(
+      client,
+      input,
+      new URL(request.url).origin,
     );
-  }
-  const { error } = await client.auth.signInWithPassword({
-    email: input.email,
-    password: input.password,
-  });
-  if (error)
+    return Response.json(result.body, { status: result.status, headers });
+  } catch {
     return Response.json(
       {
-        error: "Не удалось войти. Проверь email, пароль и подтверждение почты.",
+        error:
+          "Не удалось завершить вход. Сервис временно недоступен. Попробуй ещё раз чуть позже.",
       },
-      { status: 400 },
+      { status: 503, headers },
     );
-  return Response.json({ next: safeNext(input.next ?? null) });
+  }
 }
