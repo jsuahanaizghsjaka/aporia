@@ -1,5 +1,13 @@
 import { teachingStages } from "./curriculum.ts";
-import { activeSession, dueReviews, recommendedSkill } from "./selectors.ts";
+import { selectMission, type MissionContext } from "./mission.ts";
+import { resolveTeacher } from "./teacher.ts";
+import {
+  activeSession,
+  dueReviews,
+  recommendedSkill,
+  skillProgress,
+} from "./selectors.ts";
+import { generateProjectPlan } from "./projects.ts";
 import {
   concepts,
   grade,
@@ -32,19 +40,32 @@ function observe(
   sessionId: string,
   now: Date,
 ) {
+  const before = skillProgress(state, question.skill).mastery;
   const correct = grade(question, answer);
   const previous = state.evidence
     .filter((item) => item.questionId === question.id)
     .at(-1);
   const review = state.reviews[question.id];
   // No new evidence from immediate retries or reopening a completed question.
-  if (!previous || (review && Date.parse(review.due) <= now.getTime())) {
+  const independence = [1, 0.75, 0.5, 0.25, 0, 0][stage];
+  let observed = false;
+  if (previous?.sessionId === sessionId) {
+    observed = true;
+    previous.answer = answer;
+    previous.correct = correct;
+    previous.independence = Math.min(previous.independence, independence);
+    previous.hints_used = Math.max(previous.hints_used ?? 0, stage);
+  } else if (!previous || (review && Date.parse(review.due) <= now.getTime())) {
     requireThat(
       state.evidence.length < 5000,
       "История заполнена. Напиши в поддержку перед следующим занятием.",
     );
-    const independence = [1, 0.75, 0.5, 0.25, 0, 0][stage];
+    observed = true;
     state.evidence.push({
+      answer,
+      source_id: `${sessionId}:${question.id}`,
+      history_complete: true,
+      mastery_changes: [],
       id: `${sessionId}:${question.id}`,
       questionId: question.id,
       skill: question.skill,
@@ -53,6 +74,7 @@ function observe(
       independence,
       at: now.toISOString(),
       sessionId,
+      hints_used: stage,
     });
     const interval =
       correct && independence === 1
@@ -64,6 +86,22 @@ function observe(
       ).toISOString(),
       interval,
     };
+  }
+  if (observed) {
+    const evidence = state.evidence
+      .filter((item) => item.questionId === question.id)
+      .at(-1)!;
+    evidence.source_id ??= evidence.id;
+    const changes = (evidence.mastery_changes ??= []);
+    requireThat(
+      changes.length < 100,
+      "Лимит наблюдений для задания достигнут.",
+    );
+    changes.push({
+      before,
+      after: skillProgress(state, question.skill).mastery,
+      at: now.toISOString(),
+    });
   }
   return correct;
 }
@@ -85,6 +123,7 @@ export function applyAction(
   profile: LearningProfile,
   requestId: string,
   now = new Date(),
+  context?: Pick<MissionContext, "goal" | "roadmap">,
 ): LearningState {
   if (current.requestIds.includes(requestId)) return current;
   const state = structuredClone(current),
@@ -95,6 +134,19 @@ export function applyAction(
     "Сначала подтверди цель и профиль в знакомстве.",
   );
   switch (action.type) {
+    case "set_mode":
+      requireThat(
+        session && session.kind !== "diagnostic",
+        "Режим меняется только в учебном занятии.",
+      );
+      session.mode = action.mode;
+      // Switching back never erases help already exposed.
+      event(state, "session_mode_changed", at);
+      break;
+    case "set_project_mode":
+      requireThat(state.project, "Сначала выбери проект.");
+      state.project.mode = action.mode;
+      break;
     case "start_diagnostic": {
       requireThat(
         !state.diagnosticComplete,
@@ -116,6 +168,7 @@ export function applyAction(
         stage: 0,
         results: [],
         startedAt: at,
+        questionStartedAt: at,
         completedAt: null,
         minutes: 10,
       });
@@ -123,6 +176,7 @@ export function applyAction(
       event(state, "diagnostic_started", at);
       break;
     }
+    case "start_lesson":
     case "start_session": {
       requireThat(state.diagnosticComplete, "Сначала пройди диагностику.");
       if (session) break;
@@ -130,11 +184,27 @@ export function applyAction(
         state.sessions.length < 1000,
         "История занятий заполнена. Напиши в поддержку.",
       );
-      const due = dueReviews(state, now);
-      const skill = action.skill ?? recommendedSkill(state);
+      const lesson = action.type === "start_lesson";
+      const minutes = lesson ? action.minutes : profile.dailyMinutes;
+      const mission = selectMission(
+        {
+          state,
+          profile,
+          goal: context?.goal ?? { summary: profile.goal },
+          roadmap: context?.roadmap ?? null,
+          availableMinutes: minutes,
+        },
+        now,
+      );
+      const skill = lesson
+        ? mission.today_skill
+        : (action.skill ?? recommendedSkill(state));
+      const due = dueReviews(state, now).filter(
+        ([id]) => !lesson || id.startsWith(skill + "."),
+      );
       const count = Math.max(
         1,
-        Math.min(3, Math.floor(profile.dailyMinutes / 8)),
+        Math.min(3, Math.floor(lesson ? mission.exercise / 5 : minutes / 8)),
       );
       const bank = questions.filter(
         (q) => q.skill === skill && /\.[123]$/.test(q.id),
@@ -144,9 +214,25 @@ export function applyAction(
           state.evidence.filter((e) => e.questionId === a.id).length -
           state.evidence.filter((e) => e.questionId === b.id).length,
       );
+      const level =
+        skillProgress(state, skill).mastery < 35
+          ? 1
+          : skillProgress(state, skill).mastery < 65
+            ? 2
+            : 3;
+      const variants = Array.from(
+        { length: 20 },
+        (_, i) => `${skill}.v1.${level}.${i}`,
+      ).sort(
+        (a, b) =>
+          state.evidence.filter((e) => e.questionId === a).length -
+          state.evidence.filter((e) => e.questionId === b).length,
+      );
       const ids = due.length
         ? due.slice(0, count).map(([id]) => id)
-        : bank.slice(0, count).map((q) => q.id);
+        : lesson
+          ? variants.slice(0, count)
+          : bank.slice(0, count).map((q) => q.id);
       state.sessions.push({
         id: requestId,
         kind: due.length ? "review" : "practice",
@@ -157,10 +243,56 @@ export function applyAction(
         results: [],
         startedAt: at,
         completedAt: null,
-        minutes: profile.dailyMinutes,
+        minutes,
+        attempts: [],
+        questionStartedAt: at,
+        ...(lesson
+          ? {
+              lesson: {
+                plan: {
+                  today_skill: skill,
+                  estimated_time: minutes,
+                  reason: mission.reason,
+                  goal: mission.goal,
+                  theory: mission.theory,
+                  exercise: mission.exercise,
+                  project: mission.project,
+                },
+                phase: "theory" as const,
+                teacher: resolveTeacher(
+                  skill,
+                  { explanation: "concept", reflection: "example" },
+                  "prepared",
+                ),
+              },
+            }
+          : {}),
       });
       state.activeSession = requestId;
       event(state, "session_started", at);
+      break;
+    }
+    case "finish_theory": {
+      requireThat(
+        session?.lesson?.phase === "theory",
+        "Сначала открой теорию текущего занятия.",
+      );
+      session.lesson.phase = "exercise";
+      session.questionStartedAt = at;
+      event(state, "theory_completed", at);
+      break;
+    }
+    case "finish_project": {
+      requireThat(
+        session?.lesson?.phase === "project",
+        "Сначала заверши практику занятия.",
+      );
+      requireThat(
+        action.reflection.trim().length >= 20,
+        "Опиши применение: минимум 20 символов.",
+      );
+      session.lesson.reflection = action.reflection;
+      complete(state, session, at);
       break;
     }
     case "hint": {
@@ -172,6 +304,10 @@ export function applyAction(
         !session.results[session.index],
         "Ответ уже проверен — переходи к следующему заданию.",
       );
+      requireThat(
+        !session.lesson || session.lesson.phase === "exercise",
+        "Сначала перейди к практике.",
+      );
       session.stage =
         session.mode === "help"
           ? 5
@@ -182,6 +318,15 @@ export function applyAction(
     case "answer": {
       requireThat(session, "Сначала начни занятие.");
       requireThat(!session.results[session.index], "Этот ответ уже сохранён.");
+      requireThat(
+        !session.lesson || session.lesson.phase === "exercise",
+        "Сначала перейди к практике.",
+      );
+      const attempts = (session.attempts ??= []);
+      requireThat(
+        attempts.length < 100,
+        "Лимит попыток в этом занятии достигнут.",
+      );
       const question = questionById(session.questions[session.index]);
       const correct = observe(
         state,
@@ -192,15 +337,35 @@ export function applyAction(
         session.id,
         now,
       );
-      session.results.push({
+      const result = {
         questionId: question.id,
         answer: action.answer,
         correct,
         stage: session.stage,
         at,
-      });
+        hints_used: session.stage,
+        skill_id: question.skill,
+        time_spent: Math.min(
+          7200,
+          Math.max(
+            0,
+            Math.floor(
+              (now.getTime() -
+                Date.parse(session.questionStartedAt ?? session.startedAt)) /
+                1000,
+            ),
+          ),
+        ),
+      };
+      attempts.push(result);
+      if (session.kind === "diagnostic" || correct || session.stage === 5)
+        session.results.push(result);
+      else
+        session.stage =
+          session.mode === "help" ? 5 : Math.min(5, session.stage + 1);
       if (session.kind === "diagnostic") {
         session.index++;
+        session.questionStartedAt = at;
         if (session.index === session.questions.length)
           complete(state, session, at);
       }
@@ -213,9 +378,12 @@ export function applyAction(
         "Сначала ответь или выбери «Пока не знаю».",
       );
       session.index++;
+      session.questionStartedAt = at;
       session.stage = 0;
-      if (session.index === session.questions.length)
-        complete(state, session, at);
+      if (session.index === session.questions.length) {
+        if (session.lesson) session.lesson.phase = "project";
+        else complete(state, session, at);
+      }
       break;
     }
     case "choose_project": {
@@ -231,6 +399,17 @@ export function applyAction(
         checkpoints: [],
         checks: {},
         reviews: {},
+        plan: generateProjectPlan(
+          state,
+          profile,
+          context?.goal?.summary ?? profile.goal,
+          action.projectId,
+        ),
+        mode: "learn",
+        assistance: {},
+        submissions: {},
+        messages: [],
+        decisions: [],
       };
       event(state, "project_started", at);
       break;
@@ -238,6 +417,10 @@ export function applyAction(
     case "save_artifact": {
       requireThat(state.project, "Сначала выбери проект.");
       state.project.artifacts[action.skill] = action.artifact;
+      const submitted = state.project.submissions?.[action.skill];
+      if (submitted && submitted.artifact !== action.artifact) {
+        delete state.project.submissions![action.skill];
+      }
       event(state, "artifact_saved", at);
       break;
     }
@@ -252,7 +435,11 @@ export function applyAction(
         "Заверши диагностику прежде, чем перейти к проекту.",
       );
       const question = questionById(`${action.skill}.project`);
-      const exposed = !!state.project.checks[action.skill];
+      if (state.project.checks[action.skill]?.correct) break;
+      const exposed =
+        !!state.project.checks[action.skill] ||
+        !!state.project.assistance?.[action.skill] ||
+        !!state.project.reviews[action.skill];
       const correct = observe(
         state,
         question,
@@ -272,6 +459,41 @@ export function applyAction(
       if (correct && !state.project.checkpoints.includes(action.skill))
         state.project.checkpoints.push(action.skill);
       event(state, "project_checkpoint_checked", at);
+      break;
+    }
+    case "submit_task": {
+      requireThat(state.project, "Сначала выбери проект.");
+      const artifact = state.project.artifacts[action.skill];
+      requireThat(
+        artifact?.trim().length >= 20 &&
+          state.project.checks[action.skill]?.correct,
+        "Сначала сохрани решение и пройди проверку понимания.",
+      );
+      (state.project.submissions ??= {})[action.skill] = {
+        artifact,
+        report: action.report,
+        at,
+      };
+      event(state, "project_task_submitted", at);
+      break;
+    }
+    case "save_decision": {
+      requireThat(state.project, "Сначала выбери проект.");
+      const decisions = (state.project.decisions ??= []);
+      requireThat(decisions.length < 30, "В проекте уже сохранено 30 решений.");
+      requireThat(
+        !decisions.some(
+          (d) => d.skill === action.skill && d.text === action.text,
+        ),
+        "Это решение уже сохранено.",
+      );
+      decisions.push({
+        id: requestId,
+        skill: action.skill,
+        text: action.text,
+        at,
+      });
+      event(state, "project_decision_saved", at);
       break;
     }
     case "feedback": {
@@ -305,14 +527,25 @@ export function applyAction(
   return state;
 }
 function publicQuestion(question: Question) {
-  const { id, skill, prompt, code, choices } = question;
-  return { id, skill, prompt, code, choices, kind: questionKind(question) };
+  const { id, skill, prompt, code, choices, level } = question;
+  return {
+    id,
+    skill,
+    prompt,
+    code,
+    choices,
+    level,
+    kind: questionKind(question),
+  };
 }
 export function learningView(state: LearningState): LearningView {
   const session = activeSession(state);
-  const question = session
-    ? questionById(session.questions[session.index])
-    : null;
+  const question =
+    session &&
+    (!session.lesson || session.lesson.phase === "exercise") &&
+    session.index < session.questions.length
+      ? questionById(session.questions[session.index])
+      : null;
   const stage = session?.stage ?? 0;
   const help =
     question && session?.kind !== "diagnostic"
@@ -325,8 +558,7 @@ export function learningView(state: LearningState): LearningView {
           question.solution,
         ][stage]
       : null;
-  const solution =
-    question && session?.results[session.index] ? question.solution : null;
+  const solution = question && stage === 5 ? question.solution : null;
   return {
     state,
     question: question ? publicQuestion(question) : null,
@@ -349,9 +581,10 @@ export function mentorLearningContext(state: LearningState) {
     active: session
       ? {
           kind: session.kind,
-          question: publicQuestion(
-            questionById(session.questions[session.index]),
-          ),
+          question:
+            session.index < session.questions.length
+              ? publicQuestion(questionById(session.questions[session.index]))
+              : null,
           stage: teachingStages[session.stage],
           mode: session.mode,
         }
@@ -398,7 +631,12 @@ export function addProjectReview(
     "Код изменился во время разбора. Запроси новый разбор.",
   );
   const next = structuredClone(state);
-  next.project!.reviews[skill] = { artifact, text, at };
+  next.project!.reviews[skill] = {
+    artifact,
+    text,
+    at,
+    mode: state.project?.mode ?? "learn",
+  };
   event(next, "project_reviewed", at);
   return next;
 }

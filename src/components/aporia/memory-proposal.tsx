@@ -1,9 +1,12 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import {
   memoryCandidateSchema,
   type MemoryCandidate,
 } from "@/lib/profile/memory";
+const subscribeHydration = () => () => {};
+const clientReady = () => true;
+const serverReady = () => false;
 export function MemoryProposal({
   disabled,
   version,
@@ -13,6 +16,11 @@ export function MemoryProposal({
   version: number;
   onApply: (candidate: MemoryCandidate) => void;
 }) {
+  const hydrated = useSyncExternalStore(
+    subscribeHydration,
+    clientReady,
+    serverReady,
+  );
   const [candidate, setCandidate] = useState<{
       value: MemoryCandidate;
       version: number;
@@ -63,7 +71,7 @@ export function MemoryProposal({
       <button
         type="button"
         className="secondary-button"
-        disabled={disabled || busy}
+        disabled={!hydrated || disabled || busy}
         onClick={() => void extract()}
       >
         {busy ? "Собираем предложение…" : "Уточнить профиль из знакомства"}

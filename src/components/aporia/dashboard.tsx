@@ -11,18 +11,27 @@ import {
   Compass,
   Check,
   CaretRight,
+  ChartLineUp,
+  FolderSimple,
   Sparkle,
 } from "@phosphor-icons/react";
 import { useProfile } from "./profile-provider";
 import { useLearning } from "./learning-provider";
-import { dailyMission } from "@/lib/learning/selectors";
+import { masterySnapshot } from "@/lib/learning/mastery";
+import { projects } from "@/lib/learning/projects";
 import { MentorVisual } from "./mentor-visual";
+import { useMission } from "./use-mission";
 
 export function Dashboard() {
   const { profile, href } = useProfile();
   const ready = profile.onboardingComplete;
   const { view, loading, ready: memoryReady, error, refresh } = useLearning();
-  const mission = dailyMission(view.state, profile, new Date());
+  const missionState = useMission();
+  const mission = missionState.mission;
+  const mastery = masterySnapshot(view.state);
+  const currentProject = view.state.project
+    ? projects.find((project) => project.id === view.state.project?.id)
+    : null;
   return (
     <div className="dashboard page-enter">
       <div className="page-heading">
@@ -42,6 +51,43 @@ export function Dashboard() {
         </span>
       </div>
       {ready && <GoalSummary />}
+      {ready && memoryReady && (
+        <section
+          className="dashboard-signals"
+          aria-label="Твой подтверждённый прогресс"
+        >
+          <div className="signal-card glass-panel">
+            <ChartLineUp size={21} />
+            <span>Подтверждённый прогресс</span>
+            <strong>{mastery.overall_mastery}%</strong>
+            <small>
+              Уверенность {mastery.overall_confidence}% ·{" "}
+              {mastery.evidence_count} evidence
+            </small>
+          </div>
+          <div className="signal-card glass-panel">
+            <Compass size={21} />
+            <span>Нужна практика</span>
+            <strong>
+              {mastery.weak_skills
+                .map((skill) => skill.skill_id.toUpperCase())
+                .join(" · ") || "Python"}
+            </strong>
+            <small>Уровень растёт только после проверенного ответа.</small>
+          </div>
+          <div className="signal-card glass-panel">
+            <FolderSimple size={21} />
+            <span>Текущий проект</span>
+            <strong>
+              {currentProject?.title ?? "Выбери после диагностики"}
+            </strong>
+            <small>
+              {currentProject?.detail ??
+                "Проект свяжет темы с реальной задачей."}
+            </small>
+          </div>
+        </section>
+      )}
       <section
         className="mission-panel glass-panel"
         aria-labelledby="mission-title"
@@ -53,7 +99,7 @@ export function Dashboard() {
             </span>
             <span>
               <Clock size={14} />
-              {`${mission.minutes} минут`}
+              {`${mission.estimated_time} минут`}
             </span>
           </div>
           <h2 id="mission-title">
@@ -83,6 +129,17 @@ export function Dashboard() {
               : "Я Aporia, твой ментор. Расскажи, куда хочешь прийти. Вместе превратим это в понятный маршрут."}
           </p>
           <div className="mission-actions">
+            {missionState.error && (
+              <p role="alert">
+                {missionState.error}{" "}
+                <button
+                  className="text-link"
+                  onClick={() => void missionState.refresh()}
+                >
+                  Повторить загрузку
+                </button>
+              </p>
+            )}
             {ready && !memoryReady ? (
               <button
                 className="primary-button"
@@ -92,6 +149,8 @@ export function Dashboard() {
                 {loading ? "Загружаем…" : "Попробовать ещё раз"}
                 <ArrowRight size={17} />
               </button>
+            ) : missionState.loading ? (
+              <span role="status">Подбираем следующий шаг…</span>
             ) : (
               <Link className="primary-button" href={href(mission.path)}>
                 {ready ? "Продолжить" : "Давай познакомимся"}

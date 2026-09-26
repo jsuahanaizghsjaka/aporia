@@ -1,6 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useSkillGraph } from "./use-skill-graph";
+import { previewGraph } from "@/lib/learning/skill-graph";
+import {
+  progressGroup,
+  progressGroups,
+  type ProgressGroup,
+} from "@/lib/learning/history";
+import { LearningHistory, EvidenceList } from "./learning-history";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -26,26 +32,11 @@ const date = (value: string) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-const kinds = {
-  diagnostic: "Диагностика",
-  exercise: "Задание",
-  review: "Повторение",
-  project: "Проверка понимания проекта",
-};
 export function SkillRows({ resources = false }: { resources?: boolean }) {
   const { view, send } = useLearning();
   const { href } = useProfile();
-  const graph = useSkillGraph();
-  if (graph.error)
-    return (
-      <div className="notice" role="alert">
-        {graph.error}{" "}
-        <button className="text-link" onClick={graph.refresh}>
-          Повторить
-        </button>
-      </div>
-    );
-  if (!graph.data) return <p role="status">Загружаем карту навыков…</p>;
+  const graph = previewGraph(view.state);
+  const [group, setGroup] = useState<ProgressGroup | "all">("all");
   return (
     <div className="glass-panel skill-table">
       <div className="skill-root">
@@ -53,17 +44,45 @@ export function SkillRows({ resources = false }: { resources?: boolean }) {
         <h2>Python backend</h2>
         <p>8 направлений · уровень подтверждается ответами и практикой.</p>
       </div>
+      {!resources && (
+        <div className="progress-filters">
+          <label htmlFor="skill-group">Группа навыков</label>
+          <select
+            id="skill-group"
+            value={group}
+            onChange={(e) => setGroup(e.target.value as ProgressGroup | "all")}
+          >
+            <option value="all">Все навыки</option>
+            {Object.entries(progressGroups).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label} (
+                {
+                  curriculum.filter(
+                    (s) =>
+                      progressGroup(skillProgress(view.state, s.id)) === key,
+                  ).length
+                }
+                )
+              </option>
+            ))}
+          </select>
+          <p className="quiet-copy">
+            Сильные: от 70% mastery и 45% уверенности. В процессе: от 35%. Ниже
+            — нужна практика. Без ответов — не начато.
+          </p>
+        </div>
+      )}
       {curriculum.map((skill, index) => {
         const evidence = skillProgress(view.state, skill.id);
-        const stored = graph.data!.user_skills.find(
-          (s) => s.skill_id === skill.id,
-        )!;
+        const stored = graph.user_skills.find((s) => s.skill_id === skill.id)!;
         const progress = {
           ...evidence,
           mastery: stored.mastery_score,
           confidence: stored.confidence,
           count: stored.evidence_count,
         };
+        const category = progressGroup(progress);
+        if (!resources && group !== "all" && group !== category) return null;
         const prerequisite = curriculum.find(
           (item) => item.id === skill.prerequisite,
         );
@@ -74,6 +93,11 @@ export function SkillRows({ resources = false }: { resources?: boolean }) {
             </span>
             <div className="skill-copy">
               <h2>{skill.title}</h2>
+              {!resources && (
+                <span className={`skill-status status-${category}`}>
+                  {progressGroups[category]}
+                </span>
+              )}
               <p>{skill.detail}</p>
               <small>
                 Python backend → {skill.short}
@@ -125,33 +149,37 @@ export function SkillRows({ resources = false }: { resources?: boolean }) {
                 )}
               </details>
             ) : (
-              progress.last && (
-                <details className="evidence-detail">
-                  <summary>Почему такой уровень?</summary>
+              <details className="evidence-detail">
+                <summary>Почему такой уровень?</summary>
+                {progress.count ? (
+                  <EvidenceList
+                    entries={view.state.evidence.filter(
+                      (e) => e.skill === skill.id,
+                    )}
+                  />
+                ) : (
                   <p>
-                    Последний сигнал: {kinds[progress.last.kind]},{" "}
-                    {date(progress.last.at)}.{" "}
-                    {progress.last.correct
-                      ? "Верный ответ"
-                      : "Пока не получилось"}
-                    ; самостоятельность{" "}
-                    {Math.round(progress.last.independence * 100)}%.
+                    Ещё нет проверенных ответов. Просмотр материалов не меняет
+                    уровень.
                   </p>
-                  <p>
-                    Уровень учитывает правильность, помощь и накопленные
-                    задания. Уверенность — объём и разнообразие проверок. Один
-                    ответ не доказывает владение всей темой.
-                  </p>
-                  <Link className="text-link" href={href("/learn")}>
-                    Продолжить практику
-                    <ArrowRight size={15} />
-                  </Link>
-                </details>
-              )
+                )}
+                <Link className="text-link" href={href("/learn")}>
+                  Продолжить практику
+                </Link>
+              </details>
             )}
           </section>
         );
       })}
+      {!resources &&
+        group !== "all" &&
+        !curriculum.some(
+          (s) => progressGroup(skillProgress(view.state, s.id)) === group,
+        ) && (
+          <p className="empty-skill-group" role="status">
+            В этой группе пока нет навыков.
+          </p>
+        )}
     </div>
   );
 }
@@ -285,69 +313,7 @@ function ProgressContent() {
         </Link>
       </div>
       <WeeklyReview />
-      <section className="session-history">
-        <div className="section-heading">
-          <h2>История занятий</h2>
-          <span className="quiet-copy">Последние 20</span>
-        </div>
-        {view.state.sessions.length ? (
-          [...view.state.sessions]
-            .reverse()
-            .slice(0, 20)
-            .map((session) => (
-              <details className="glass-panel history-item" key={session.id}>
-                <summary>
-                  <span>
-                    {session.kind === "diagnostic"
-                      ? "Точка старта"
-                      : session.kind === "review"
-                        ? "Повторение"
-                        : "Практика"}
-                    <small>{date(session.startedAt)}</small>
-                  </span>
-                  <span>
-                    {session.completedAt
-                      ? `${session.results.filter((r) => r.correct).length} / ${session.questions.length} верно`
-                      : "Можно продолжить"}
-                  </span>
-                </summary>
-                <ul>
-                  {session.results.map((result) => (
-                    <li key={result.questionId}>
-                      <strong>
-                        {
-                          curriculum.find((skill) =>
-                            result.questionId.startsWith(`${skill.id}.`),
-                          )?.short
-                        }
-                      </strong>
-                      <span>
-                        {result.correct ? "Верно" : "Нужна практика"} ·{" "}
-                        {result.stage ? "с помощью" : "без подсказок"}
-                      </span>
-                      <code>{result.answer || "Пока не знаю"}</code>
-                    </li>
-                  ))}
-                </ul>
-                {session.completedAt ? (
-                  <Feedback target={session.id} />
-                ) : (
-                  <Link
-                    className="text-link"
-                    href={href(
-                      session.kind === "diagnostic" ? "/diagnostic" : "/learn",
-                    )}
-                  >
-                    Продолжить занятие
-                    <ArrowRight size={15} />
-                  </Link>
-                )}
-              </details>
-            ))
-        ) : (
-          <p className="quiet-copy">Здесь сохранятся занятия и твои ответы.</p>
-        )}
-      </section>
+      <LearningHistory />
     </>
   );
 }

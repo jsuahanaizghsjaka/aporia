@@ -40,6 +40,8 @@ const LearningContext = createContext<{
   send: (action: LearningAction) => Promise<boolean>;
   refresh: () => Promise<void>;
   review: (skill: SkillId) => Promise<boolean>;
+  askProject: (skill: SkillId, message: string) => Promise<boolean>;
+  cancelProject: () => void;
 } | null>(null);
 export function LearningProvider({ children }: { children: React.ReactNode }) {
   const { profile, preview } = useProfile();
@@ -51,6 +53,9 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
   const inFlight = useRef(false),
     pending = useRef<{ signature: string; id: string } | null>(null);
   const order = useRef(createRequestOrder());
+  const projectController = useRef<AbortController | null>(null);
+  const projectPending = useRef<{ signature: string; id: string } | null>(null);
+  useEffect(() => () => projectController.current?.abort(), []);
   const snapshot = useRef<string | null>(null);
   const { onboardingComplete, dailyMinutes, interests, goal } = profile;
   const loadView = useCallback(async () => {
@@ -155,7 +160,9 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
         preview ? "/api/learning/preview" : "/api/learning",
         {
           method: "POST",
-          signal: AbortSignal.timeout(20000),
+          signal: AbortSignal.timeout(
+            action.type === "start_lesson" ? 85000 : 20000,
+          ),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             preview
@@ -163,6 +170,9 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
                   state: raw ? JSON.parse(raw) : view.state,
                   action,
                   requestId,
+                  roadmap: JSON.parse(
+                    localStorage.getItem("aporia:preview:roadmap:v1") ?? "null",
+                  ),
                   profile: {
                     onboardingComplete,
                     dailyMinutes,
@@ -246,9 +256,76 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
       setBusy(false);
     }
   };
+  const askProject = async (skill: SkillId, message: string) => {
+    if (inFlight.current || !ready) return false;
+    if (preview) {
+      setError(
+        "Проектный AI-чат доступен после входа и подключения AI. В preview можно сохранить решения вручную.",
+      );
+      return false;
+    }
+    inFlight.current = true;
+    order.current.next();
+    setBusy(true);
+    setError("");
+    const controller = new AbortController();
+    projectController.current = controller;
+    const signature = JSON.stringify({ skill, message });
+    if (projectPending.current?.signature !== signature)
+      projectPending.current = { signature, id: newRequestId() };
+    try {
+      const response = await fetch("/api/learning/project-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.any([
+          controller.signal,
+          AbortSignal.timeout(85000),
+        ]),
+        body: JSON.stringify({
+          skill,
+          message,
+          version: view.version,
+          requestId: projectPending.current.id,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 409 && data.state) setView(data);
+        if (response.status < 500) projectPending.current = null;
+        throw new Error(data.error || "Ответ не завершён.");
+      }
+      setView(data);
+      projectPending.current = null;
+      return true;
+    } catch (cause) {
+      setError(
+        controller.signal.aborted
+          ? "Запрос отменён. Если сервер уже успел сохранить ответ, он появится после обновления данных."
+          : cause instanceof Error
+            ? cause.message
+            : "Связь прервалась. Можно повторить вопрос.",
+      );
+      return false;
+    } finally {
+      inFlight.current = false;
+      projectController.current = null;
+      setBusy(false);
+    }
+  };
   return (
     <LearningContext.Provider
-      value={{ view, loading, ready, busy, error, send, refresh, review }}
+      value={{
+        view,
+        loading,
+        ready,
+        busy,
+        error,
+        send,
+        refresh,
+        review,
+        askProject,
+        cancelProject: () => projectController.current?.abort(),
+      }}
     >
       {children}
     </LearningContext.Provider>

@@ -1,0 +1,112 @@
+.progress-filters {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+}
+.progress-filters select {
+  max-width: 100%;
+  width: 280px;
+}
+.skill-status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 4px 8px;
+  margin-block: 8px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+.status-strong {
+  color: var(--mint, #a1edd3);
+}
+.status-learning {
+  color: #d5c6ff;
+}
+.status-weak {
+  color: #f0d1a7;
+}
+.status-not_started {
+  color: #c3becf;
+}
+.empty-skill-group {
+  padding: 24px;
+}
+.evidence-ledger {
+  min-width: 0;
+}
+.evidence-ledger ol {
+  padding-left: 18px;
+}
+.evidence-ledger li {
+  margin-block: 16px;
+  overflow-wrap: anywhere;
+}
+.evidence-ledger li > span {
+  display: block;
+  margin-block: 8px;
+}
+.evidence-ledger summary {
+  cursor: pointer;
+}
+.source-id,
+.session-body code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.session-body {
+  padding: 0 24px 24px;
+  min-width: 0;
+}
+.session-body > *,
+.session-mastery > * {
+  margin-block: 16px;
+}
+.session-body ul {
+  padding: 0;
+}
+.session-permalink {
+  margin: 0 24px 12px;
+}
+.session-detail {
+  padding-top: 24px;
+}
+.session-detail > h1,
+.session-detail > p,
+.session-detail > a {
+  margin: 16px 24px;
+  overflow-wrap: anywhere;
+}
+.session-history > .quiet-copy {
+  margin-bottom: 18px;
+}
+@media (max-width: 600px) {
+  .session-body {
+    padding-inline: 16px;
+  }
+  .progress-filters {
+    padding: 16px;
+  }
+  .evidence-ledger ol {
+    padding-left: 16px;
+  }
+}
+
+.session-detail > h1 {
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.session-body h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.progress-filters select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #1b1428;
+  color: var(--text, #f2eefb);
+  font-size: 14px;
+  min-height: 44px;
+}

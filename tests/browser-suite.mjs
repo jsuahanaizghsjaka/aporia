@@ -7,3 +7,22 @@ for (const file of ["tests/browser.mjs", "tests/stages7-10-browser.mjs"]) {
   );
   if (result.error || result.status !== 0) process.exit(result.status || 1);
 }
+const lessons = spawnSync(
+  process.execPath,
+  ["--experimental-strip-types", "tests/stages14-16-http.mjs", "--browser"],
+  { stdio: "inherit", env: process.env },
+);
+if (lessons.error || lessons.status !== 0) process.exit(lessons.status || 1);
+const projects = spawnSync(
+  process.execPath,
+  ["--experimental-strip-types", "tests/stages17-20-http.mjs", "--browser"],
+  { stdio: "inherit", env: process.env },
+);
+if (projects.error || projects.status !== 0) process.exit(projects.status || 1);
+
+const history = spawnSync(
+  process.execPath,
+  ["--experimental-strip-types", "tests/stages21-23-http.mjs", "--browser"],
+  { stdio: "inherit", env: process.env },
+);
+if (history.error || history.status !== 0) process.exit(history.status || 1);

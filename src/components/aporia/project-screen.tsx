@@ -14,18 +14,27 @@ import {
   projectTasks,
   projects,
   suggestedProject,
+  generateProjectPlan,
 } from "@/lib/learning/projects";
 import type { SkillId } from "@/lib/learning/types";
 import { useProfile } from "./profile-provider";
 import { LearningGate, useLearning } from "./learning-provider";
 import { QuestionInput } from "./practice";
+import { ProjectMentor } from "./project-mentor";
+import { useGoal } from "./goal-editor";
 function ProjectTask({ skill }: { skill: SkillId }) {
   const { view, send, review, busy } = useLearning();
   const { preview } = useProfile();
   const project = view.state.project!,
-    task = projectTasks[skill];
+    task = {
+      ...projectTasks[skill],
+      ...project.plan?.tasks.find((t) => t.skill === skill),
+    };
   const [draft, setDraft] = useState(project.artifacts[skill] ?? ""),
     [answer, setAnswer] = useState("");
+  const [report, setReport] = useState(
+    project.submissions?.[skill]?.report ?? "",
+  );
   const saved = draft === (project.artifacts[skill] ?? "");
   const [pendingNavigation, setPendingNavigation] =
     useState<HTMLElement | null>(null);
@@ -223,12 +232,59 @@ function ProjectTask({ skill }: { skill: SkillId }) {
           </div>
         )}
       </details>
+      <section className="task-submission" aria-labelledby="submission-title">
+        <h3 id="submission-title">Результат задачи</h3>
+        <p className="quiet-copy">
+          После проверки понимания приложи команды проверки и фактический
+          результат: что получилось и что пока не работает. Это твой отчёт, не
+          автоматическое подтверждение запуска.
+        </p>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await send({ type: "submit_task", skill, report });
+          }}
+        >
+          <label className="field-label">
+            Отчёт о проверке
+            <textarea
+              rows={4}
+              value={report}
+              onChange={(e) => setReport(e.target.value)}
+              minLength={30}
+              maxLength={4000}
+              disabled={busy}
+              required
+            />
+          </label>
+          <button
+            className="primary-button"
+            disabled={
+              busy ||
+              !saved ||
+              !check?.correct ||
+              report.trim().length < 30 ||
+              !!project.submissions?.[skill]
+            }
+          >
+            Сдать результат задачи
+          </button>
+        </form>
+        {project.submissions?.[skill] && (
+          <p role="status" className="save-note">
+            Результат сохранён. При изменении кода задача снова откроется. Сам
+            отчёт не повышает mastery.
+          </p>
+        )}
+      </section>
+      <ProjectMentor skill={skill} />
     </section>
   );
 }
 function ProjectContent() {
   const { view, send, busy } = useLearning();
-  const { profile, href } = useProfile();
+  const { profile, href, preview } = useProfile();
+  const goalState = useGoal();
   const [skill, setSkill] = useState<SkillId>("python");
   const project = view.state.project;
   if (!view.state.diagnosticComplete)
@@ -252,11 +308,12 @@ function ProjectContent() {
       </section>
     );
   if (!project) {
-    const suggestion = suggestedProject(profile.interests);
+    const goal = goalState.goal?.summary ?? profile.goal;
+    const suggestion = suggestedProject(`${goal} ${profile.interests}`);
     return (
       <>
         <p className="panel-description">
-          Один проект на весь маршрут. По твоим интересам предлагаем «
+          Один проект на весь маршрут. По твоей цели и интересам предлагаем «
           {suggestion.title}», но выбор за тобой.
         </p>
         <div className="project-options">
@@ -274,9 +331,44 @@ function ProjectContent() {
                 </span>
                 <h2>{item.title}</h2>
                 <p>{item.detail}</p>
+                <details>
+                  <summary>План из цели и уровня</summary>
+                  <p>
+                    {
+                      generateProjectPlan(view.state, profile, goal, item.id)
+                        .reason
+                    }
+                  </p>
+                  <ol>
+                    {generateProjectPlan(
+                      view.state,
+                      profile,
+                      goal,
+                      item.id,
+                    ).tasks.map((t) => (
+                      <li key={t.skill}>
+                        <strong>{t.title}</strong> ·{" "}
+                        {
+                          {
+                            foundation: "основы",
+                            practice: "практика",
+                            challenge: "углубление",
+                          }[t.level]
+                        }
+                        <p>{t.brief}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
                 <button
                   className="secondary-button"
-                  disabled={busy}
+                  disabled={
+                    busy ||
+                    (!preview &&
+                      (!goalState.loaded ||
+                        !!goalState.error ||
+                        !goalState.goal))
+                  }
                   onClick={() =>
                     void send({ type: "choose_project", projectId: item.id })
                   }
@@ -287,6 +379,20 @@ function ProjectContent() {
               </section>
             ))}
         </div>
+        {!preview && (!goalState.goal || goalState.error) && (
+          <p role={goalState.error ? "alert" : undefined}>
+            {goalState.error || "Сначала подтверди учебную цель."}{" "}
+            <Link className="text-link" href={href("/profile")}>
+              Открыть цель
+            </Link>{" "}
+            <button
+              className="text-link"
+              onClick={() => void goalState.refresh()}
+            >
+              Обновить
+            </button>
+          </p>
+        )}
       </>
     );
   }
@@ -296,11 +402,15 @@ function ProjectContent() {
       <div className="project-title">
         <div>
           <span className="eyebrow">ТВОЙ АКТИВНЫЙ ПРОЕКТ</span>
-          <h2>{selected.title}</h2>
+          <h2>{project.plan?.title ?? selected.title}</h2>
           <p>{selected.detail}</p>
+          {project.plan && (
+            <p className="quiet-copy">Цель проекта: {project.plan.goal}</p>
+          )}
         </div>
         <span className="quiet-badge">
-          Проверки понимания: {project.checkpoints.length} / 8
+          Сдано задач: {Object.keys(project.submissions ?? {}).length} / 8 ·
+          понимание: {project.checkpoints.length} / 8
         </span>
       </div>
       <div className="project-layout">
@@ -312,7 +422,7 @@ function ProjectContent() {
               onClick={() => setSkill(item.id)}
             >
               <span>
-                {project.checkpoints.includes(item.id) ? (
+                {project.submissions?.[item.id] ? (
                   <Check size={17} />
                 ) : (
                   String(index + 1).padStart(2, "0")

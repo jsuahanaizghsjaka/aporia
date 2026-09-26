@@ -3,9 +3,11 @@ import { isSameOrigin } from "@/lib/auth/request";
 import { actionSchema, stateSchema } from "@/lib/learning/types";
 import { applyAction, learningView } from "@/lib/learning/engine";
 import { initialLearningState } from "@/lib/learning/selectors";
+import { roadmapRecordSchema } from "@/lib/roadmaps/schema";
 const inputSchema = z.object({
   state: stateSchema.optional(),
   action: actionSchema.optional(),
+  roadmap: roadmapRecordSchema.nullable().optional(),
   requestId: z.uuid(),
   profile: z.object({
     onboardingComplete: z.boolean(),
@@ -30,7 +32,17 @@ export async function POST(request: Request) {
     const input = inputSchema.parse(JSON.parse(body));
     const state = input.state ?? initialLearningState();
     const next = input.action
-      ? applyAction(state, input.action, input.profile, input.requestId)
+      ? applyAction(
+          state,
+          input.action,
+          input.profile,
+          input.requestId,
+          new Date(),
+          {
+            goal: { summary: input.profile.goal },
+            roadmap: input.roadmap ?? null,
+          },
+        )
       : state;
     return Response.json(
       { ...learningView(next), version: 0 },

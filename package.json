@@ -14,7 +14,14 @@
     "test:ai": "node --experimental-strip-types tests/onboarding-http.mjs",
     "test:browser": "node tests/browser-suite.mjs",
     "verify": "node scripts/verify.mjs",
-    "test:milestones": "node --experimental-strip-types tests/stages7-10-http.mjs"
+    "test:milestones": "node --experimental-strip-types tests/stages7-10-http.mjs",
+    "test:stages-11-13": "node --experimental-strip-types --test tests/stages11-13.test.mjs",
+    "test:lessons": "node --experimental-strip-types tests/stages14-16-http.mjs",
+    "test:lessons:browser": "node --experimental-strip-types tests/stages14-16-http.mjs --browser",
+    "test:projects": "node --experimental-strip-types tests/stages17-20-http.mjs",
+    "test:projects:browser": "node --experimental-strip-types tests/stages17-20-http.mjs --browser",
+    "test:history": "node --experimental-strip-types tests/stages21-23-http.mjs",
+    "test:history:browser": "node --experimental-strip-types tests/stages21-23-http.mjs --browser"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

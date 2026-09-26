@@ -11,11 +11,14 @@ import {
 } from "@phosphor-icons/react";
 import { useProfile } from "./profile-provider";
 import { LearningGate, useLearning } from "./learning-provider";
-import { activeSession, dailyMission } from "@/lib/learning/selectors";
+import { activeSession } from "@/lib/learning/selectors";
+import { useMission } from "./use-mission";
+import { LessonFlow } from "./lesson-flow";
 import { curriculum, teachingStages } from "@/lib/learning/curriculum";
 import type { PublicQuestion } from "@/lib/learning/types";
 import { useGoal } from "./goal-editor";
 import { MentorChat } from "./mentor-chat";
+import { ModeSwitch } from "./mode-switch";
 export function QuestionInput({
   question,
   value,
@@ -137,6 +140,9 @@ function Exercise() {
   const question = view.question!;
   const [answer, setAnswer] = useState("");
   const result = session.results[session.index];
+  const lastAttempt = session.attempts
+    ?.filter((item) => item.questionId === question.id)
+    .at(-1);
   const credited = view.state.evidence.some(
     (item) => item.sessionId === session.id && item.questionId === question.id,
   );
@@ -173,6 +179,26 @@ function Exercise() {
         max={session.questions.length}
         aria-label="Пройденные задания"
       />
+      {!diagnostic && (
+        <ModeSwitch
+          mode={session.mode}
+          disabled={busy}
+          onChange={(mode) => void send({ type: "set_mode", mode })}
+        />
+      )}
+      {question.level && (
+        <p className="quiet-copy">
+          Уровень:{" "}
+          {
+            {
+              foundation: "основы",
+              practice: "практика",
+              challenge: "углубление",
+            }[question.level]
+          }{" "}
+          · проверяемый шаблон
+        </p>
+      )}
       <form
         onSubmit={async (event) => {
           event.preventDefault();
@@ -210,6 +236,11 @@ function Exercise() {
           </div>
         )}
       </form>
+      {!result && lastAttempt && (
+        <p className="attempt-feedback" role="status">
+          Пока неверно. Попробуй ещё раз с подсказкой ниже. Попытка сохранена.
+        </p>
+      )}
       {diagnostic ? (
         <p className="quiet-copy">
           Здесь нет подсказок. Один вопрос даёт лишь предварительный сигнал о
@@ -273,7 +304,9 @@ function Exercise() {
                 onClick={() => void send({ type: "next" })}
               >
                 {session.index + 1 === session.questions.length
-                  ? "Завершить занятие"
+                  ? session.lesson
+                    ? "Перейти к применению"
+                    : "Завершить занятие"
                   : "Следующее задание"}
                 <ArrowRight size={17} />
               </button>
@@ -289,10 +322,15 @@ function Exercise() {
   );
 }
 function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
-  const { profile, href } = useProfile();
+  const { profile, href, preview } = useProfile();
   const { view, send, busy } = useLearning();
   const goalState = useGoal();
   const [mode, setMode] = useState<"learn" | "help">("learn");
+  const [minutes, setMinutes] = useState(profile.dailyMinutes);
+  const [teacher, setTeacher] = useState<"ai" | "prepared">(
+    preview ? "prepared" : "ai",
+  );
+  const missionState = useMission(minutes);
   if (!profile.onboardingComplete)
     return (
       <section className="glass-panel empty-panel">
@@ -342,12 +380,12 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
         </Link>
       </section>
     );
-  const mission = dailyMission(view.state, profile, new Date());
+  const mission = missionState.mission;
   return (
     <section className="glass-panel session-start">
       <span className="quiet-badge">
         <Clock size={15} />
-        {diagnostic ? 10 : profile.dailyMinutes} минут
+        {diagnostic ? 10 : minutes} минут
       </span>
       <h2>
         {diagnostic
@@ -359,6 +397,66 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
           ? "Девять заданий по восьми темам: выбор ответа, короткий ответ, чтение кода и небольшая функция. Отвечай самостоятельно; если тема новая, выбери «Пока не знаю». Уйти и продолжить позже можно в любой момент."
           : mission.reason}
       </p>
+      {!diagnostic && (
+        <div className="lesson-settings">
+          <label className="field-label">
+            Сколько времени есть сейчас?
+            <select
+              value={minutes}
+              disabled={busy}
+              onChange={(e) => setMinutes(Number(e.target.value))}
+            >
+              {[
+                ...new Set([
+                  5,
+                  10,
+                  15,
+                  20,
+                  25,
+                  30,
+                  45,
+                  60,
+                  90,
+                  120,
+                  profile.dailyMinutes,
+                ]),
+              ]
+                .sort((a, b) => a - b)
+                .map((v) => (
+                  <option key={v} value={v}>
+                    {v} минут
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="field-label">
+            Объяснение
+            <select
+              value={teacher}
+              disabled={busy || preview}
+              onChange={(e) => setTeacher(e.target.value as "ai" | "prepared")}
+            >
+              <option value="ai">Подобрать с AI-ментором</option>
+              <option value="prepared">Подготовленный урок без AI</option>
+            </select>
+          </label>
+          <p className="quiet-copy">
+            Теория ≈ {mission.theory} мин · практика ≈ {mission.exercise} мин ·
+            применение ≈ {mission.project} мин
+          </p>
+          {missionState.error && (
+            <p role="alert">
+              {missionState.error}{" "}
+              <button
+                className="text-link"
+                onClick={() => void missionState.refresh()}
+              >
+                Загрузить ещё раз
+              </button>
+            </p>
+          )}
+        </div>
+      )}
       {!diagnostic && (
         <fieldset className="mode-choice">
           <legend>Как будем разбираться?</legend>
@@ -386,12 +484,15 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
       )}
       <button
         className="primary-button"
-        disabled={busy}
+        disabled={
+          busy ||
+          (!diagnostic && (missionState.loading || !!missionState.error))
+        }
         onClick={() =>
           void send(
             diagnostic
               ? { type: "start_diagnostic" }
-              : { type: "start_session", mode },
+              : { type: "start_lesson", mode, minutes, teacher },
           )
         }
       >
@@ -485,7 +586,15 @@ function PracticeContent() {
   return (
     <>
       {session ? (
-        <Exercise key={`${session.id}:${session.index}`} />
+        session.lesson ? (
+          <LessonFlow key={session.id}>
+            {view.question && (
+              <Exercise key={`${session.id}:${session.index}`} />
+            )}
+          </LessonFlow>
+        ) : (
+          <Exercise key={`${session.id}:${session.index}`} />
+        )
       ) : (
         <>
           {last && (

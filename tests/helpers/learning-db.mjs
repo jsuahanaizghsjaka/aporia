@@ -37,6 +37,21 @@ export async function learningDatabase() {
       version,
     ]);
   const tables = {
+    roadmaps: ["id", "user_id", "goal_id", "active", "version", "updated_at"],
+    roadmap_items: ["roadmap_id", "user_id", "skill_id", "position", "reason"],
+    learning_sessions: [
+      "user_id",
+      "id",
+      "kind",
+      "skill_id",
+      "status",
+      "phase",
+      "estimated_time",
+      "hints_used",
+      "started_at",
+      "completed_at",
+      "data",
+    ],
     goals: [
       "id",
       "user_id",
@@ -68,7 +83,11 @@ export async function learningDatabase() {
     const name = url.pathname.replace("/rest/v1/", "");
     if (
       !tables[name] &&
-      !["rpc/commit_goal", "rpc/commit_learning_state"].includes(name)
+      ![
+        "rpc/commit_goal",
+        "rpc/commit_learning_state",
+        "rpc/commit_roadmap",
+      ].includes(name)
     )
       return false;
     if (!current && !service) {
@@ -79,6 +98,20 @@ export async function learningDatabase() {
       let data = await asUser(
         current?.id,
         async (tx) => {
+          if (name === "rpc/commit_roadmap")
+            return Number(
+              (
+                await tx.query(
+                  "select public.commit_roadmap($1,$2,$3,$4::jsonb) v",
+                  [
+                    body._expected_version,
+                    body._request_id,
+                    body._goal_id,
+                    JSON.stringify(body._data),
+                  ],
+                )
+              ).rows[0].v,
+            );
           if (name === "rpc/commit_goal")
             return Number(
               (
@@ -119,7 +152,7 @@ export async function learningDatabase() {
           }
           const rows = (
             await tx.query(
-              `select ${fields.join(",")} from public.${name}${where.length ? " where " + where.join(" and ") : ""}${name === "skills" ? " order by position" : ""}`,
+              `select ${fields.join(",")} from public.${name}${where.length ? " where " + where.join(" and ") : ""}${["skills", "roadmap_items"].includes(name) ? " order by position" : ""}`,
               params,
             )
           ).rows;

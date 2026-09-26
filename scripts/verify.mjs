@@ -7,7 +7,7 @@ if (!npm) {
 }
 // Never let local QA write into a real account or call a paid model. These
 // explicit empty values also override .env files during Next's build.
-const env = { ...process.env };
+const env = { ...process.env, APORIA_TEST_NO_DEV_CACHE: "1" };
 for (const key of [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
@@ -26,6 +26,10 @@ for (const task of [
   "test:auth",
   "test:ai",
   "test:milestones",
+  "test:stages-11-13",
+  "test:lessons",
+  "test:projects",
+  "test:history",
 ]) {
   const result = spawnSync(process.execPath, [npm, "run", task], {
     env,

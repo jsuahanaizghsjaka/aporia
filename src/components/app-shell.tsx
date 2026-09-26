@@ -46,7 +46,9 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const { href } = useProfile();
   const link = (item: { href: string; label: string }) => {
     const Icon = icons[item.href as keyof typeof icons];
-    const active = pathname === href(item.href);
+    const active =
+      pathname === href(item.href) ||
+      pathname.startsWith(`${href(item.href)}/`);
     return (
       <Link
         className={`nav-item ${active ? "active" : ""}`}
@@ -96,6 +98,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const route = pathname.replace(/^\/preview/, "") || "/dashboard";
+  const sectionRoute = route.startsWith("/progress/sessions/")
+    ? "/progress"
+    : route;
   return (
     <div className={`app-frame ${motion ? "motion-on" : "motion-off"}`}>
       <div className="ambient-background" aria-hidden="true">
@@ -170,7 +175,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
               Моё пространство <span>/</span>
             </span>
             <strong>
-              {pageTitles[route] ??
+              {pageTitles[sectionRoute] ??
                 (route === "/onboarding" ? "Знакомство" : "Сегодня")}
             </strong>
           </div>

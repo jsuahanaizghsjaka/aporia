@@ -1,4 +1,40 @@
-import type { SkillId } from "./types.ts";
+import type { SkillId, LearningState, LearningProfile } from "./types.ts";
+import { skillProgress } from "./selectors.ts";
+import { skillIds } from "./types.ts";
+
+export function projectLevel(
+  mastery: number,
+): "foundation" | "practice" | "challenge" {
+  return mastery < 35 ? "foundation" : mastery < 65 ? "practice" : "challenge";
+}
+export function generateProjectPlan(
+  state: LearningState,
+  profile: LearningProfile,
+  goal: string,
+  projectId?: string,
+) {
+  const template =
+    projects.find((p) => p.id === projectId) ??
+    suggestedProject(`${goal} ${profile.interests}`);
+  const tasks = skillIds.map((skill) => {
+    const task = projectTasks[skill],
+      level = projectLevel(skillProgress(state, skill).mastery);
+    return {
+      skill,
+      title: task.title,
+      level,
+      criteria: [...task.criteria],
+      brief: `Предмет проекта: ${template.entity}. ${task.brief} ${level === "foundation" ? "Начни с одного минимального примера, затем добавь обработку ошибки." : level === "practice" ? "Добавь один граничный случай и объясни выбранное решение." : "Сравни два варианта реализации и проверь ограничения каждого."}`,
+    };
+  });
+  return {
+    title: template.title,
+    goal: goal.slice(0, 500),
+    interests: profile.interests.slice(0, 500),
+    tasks,
+    reason: `Проект связан с целью «${goal.slice(0, 500)}». Тема подобрана по цели и интересам; сложность каждого шага — по подтверждённому уровню навыка. Это шаблонный план Python backend, не AI-оценка.`,
+  };
+}
 export const projects = [
   {
     id: "tasks",

@@ -1,5 +1,6 @@
 // Imported only by server routes and tests. Answer keys never enter the client bundle.
 import { checkDouble } from "./code-check.ts";
+import { generatedExercise } from "./exercises.ts";
 import type { Question, SkillId } from "./types.ts";
 export const concepts: Record<SkillId, string> = {
   python:
@@ -639,7 +640,7 @@ export function questionKind(q: Question) {
   );
 }
 export function questionById(id: string): Question {
-  const question = questions.find((item) => item.id === id);
+  const question = questions.find((item) => item.id === id) ?? generatedExercise(id);
   if (!question) throw new Error("Задание не найдено.");
   return question;
 }

@@ -220,7 +220,7 @@ try {
     await expect(
       page.getByRole("heading", { name: "Точка старта найдена." }),
     ).toBeVisible();
-    await page.goto(app.base + "/roadmap");
+    await page.goto(app.base + "/progress");
     await expect(page.locator(".skill-row")).toHaveCount(8);
     await expect(page.locator(".skill-root")).toContainText("Python backend");
     assert.ok(

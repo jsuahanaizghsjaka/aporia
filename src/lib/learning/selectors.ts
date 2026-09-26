@@ -55,7 +55,10 @@ export function skillProgress(state: LearningState, skill: SkillId) {
     mastery,
     confidence,
     count: entries.length,
-    last: entries.at(-1) ?? null,
+    last: entries.reduce<(typeof entries)[number] | null>((latest, item) => {
+      const at = item.mastery_changes?.at(-1)?.at ?? item.at;
+      return !latest || at >= latest.at ? { ...item, at } : latest;
+    }, null),
   };
 }
 export function dueReviews(state: LearningState, now: Date) {
@@ -80,6 +83,7 @@ export function dailyMission(
   state: LearningState,
   profile: LearningProfile,
   now: Date,
+  roadmapSkill?: SkillId,
 ) {
   const active = activeSession(state);
   if (!profile.onboardingComplete)
@@ -105,14 +109,15 @@ export function dailyMission(
       minutes: 10,
     };
   const due = dueReviews(state, now);
-  const skill = curriculum.find((item) => item.id === recommendedSkill(state))!;
+  const selectedSkill = roadmapSkill ?? recommendedSkill(state);
+  const skill = curriculum.find((item) => item.id === selectedSkill)!;
   return {
     title: due.length
       ? "Вернём знания в рабочую память"
       : `${skill.short}: один шаг глубже`,
     reason: due.length
       ? `${due.length} заданий пора повторить. Начнём с самого раннего.`
-      : `${skill.detail}. ${state.focus === skill.id ? "Это выбранный тобой фокус." : "Эта тема доступна по основам и пока требует больше практики."}`,
+      : `${skill.detail}. ${roadmapSkill ? "Это текущий подтверждённый шаг маршрута." : state.focus === skill.id ? "Это выбранный тобой фокус." : "Эта тема доступна по основам и пока требует больше практики."}`,
     path: "/learn",
     minutes: profile.dailyMinutes,
   };

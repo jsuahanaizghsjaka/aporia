@@ -14,7 +14,11 @@ export function createAIClient(options: {
       : deadline;
     const classify = (cause: unknown) =>
       callerSignal?.aborted
-        ? new AIError("AI_CANCELLED")
+        ? new AIError(
+            callerSignal.reason?.name === "TimeoutError"
+              ? "AI_TIMEOUT"
+              : "AI_CANCELLED",
+          )
         : deadline.aborted
           ? new AIError("AI_TIMEOUT")
           : cause instanceof AIError

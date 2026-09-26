@@ -1,9 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./lesson-session.css";
+@import "./project-mentor.css";
 @import "shadcn/tailwind.css";
 @import "./aporia.css";
 @import "./lesson-zero.css";
 @import "./memory-goals.css";
+@import "./roadmaps.css";
+@import "./learning-history.css";
 
 @custom-variant dark (&:is(.dark *));
 

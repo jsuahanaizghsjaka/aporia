@@ -222,6 +222,7 @@ export async function startAuthApp({
   const env = {
     ...process.env,
     NEXT_TELEMETRY_DISABLED: "1",
+    APORIA_TEST_NO_DEV_CACHE: "1",
     NEXT_PUBLIC_SUPABASE_URL: providerUrl,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_local_auth_test_only",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
@@ -243,7 +244,6 @@ export async function startAuthApp({
     [
       require.resolve("next/dist/bin/next"),
       "dev",
-      "--webpack",
       "--hostname",
       "127.0.0.1",
       "--port",
@@ -312,6 +312,7 @@ export function cookieClient(base) {
   const cookies = new Map();
   return async (path, init = {}) => {
     const response = await fetch(base + path, {
+      signal: AbortSignal.timeout(90000),
       redirect: "manual",
       ...init,
       headers: {

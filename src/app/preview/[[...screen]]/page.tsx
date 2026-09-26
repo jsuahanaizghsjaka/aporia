@@ -1,3 +1,4 @@
+import { SessionScreen } from "@/components/aporia/learning-history";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
@@ -31,10 +32,16 @@ export default async function PreviewPage({
     projects: <LearningScreen screen="projects" />,
     progress: <LearningScreen screen="progress" />,
   };
-  if (!Object.hasOwn(pages, path)) notFound();
+  const historyId =
+    screen?.length === 3 && screen[0] === "progress" && screen[1] === "sessions"
+      ? screen[2]
+      : null;
+  if (!historyId && !Object.hasOwn(pages, path)) notFound();
   return (
     <ProfileProvider preview>
-      <AppShell>{pages[path]}</AppShell>
+      <AppShell>
+        {historyId ? <SessionScreen id={historyId} /> : pages[path]}
+      </AppShell>
     </ProfileProvider>
   );
 }

@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { readGoal } from "@/lib/goals/storage";
+import { readRoadmap } from "@/lib/roadmaps/storage";
+import { selectMission } from "@/lib/learning/mission";
+import { prepareTeacher } from "@/lib/learning/teacher-server";
+import { activeSession } from "@/lib/learning/selectors";
+import { AIError, publicAIError } from "@/lib/ai/errors";
+export const maxDuration = 90;
 import { getSession } from "@/lib/supabase/session";
 import { isSameOrigin } from "@/lib/auth/request";
 import { actionSchema } from "@/lib/learning/types";
@@ -96,13 +102,68 @@ export async function POST(request: Request) {
         { status: 422 },
       );
     let next;
+    const profile = profileSchema.parse(data?.data ?? emptyProfile);
+    let context;
+    let teacher;
+    if (input.action.type === "choose_project") {
+      const goal = await readGoal(session.client, session.user.id);
+      if (!goal)
+        return Response.json(
+          { error: "Сначала подтверди учебную цель." },
+          { status: 422 },
+        );
+      context = { goal, roadmap: null };
+    }
+    if (input.action.type === "start_lesson" && !activeSession(state)) {
+      const [goal, roadmap] = await Promise.all([
+        readGoal(session.client, session.user.id),
+        readRoadmap(session.client, session.user.id),
+      ]);
+      if (!goal || !profile.onboardingComplete || !state.diagnosticComplete)
+        return Response.json(
+          { error: "Сначала подтверди профиль, цель и заверши диагностику." },
+          { status: 422 },
+        );
+      context = { goal, roadmap };
+      if (input.action.teacher === "ai") {
+        try {
+          const quota = await session.client.rpc("consume_ai_request");
+          if (quota.error) throw new AIError("AI_MEMORY");
+          if (!quota.data) throw new AIError("AI_RATE_LIMIT", 60);
+          const mission = selectMission({
+            ...context,
+            state,
+            profile,
+            availableMinutes: input.action.minutes,
+          });
+          teacher = await prepareTeacher(
+            profile,
+            mission,
+            state,
+            AbortSignal.any([request.signal, AbortSignal.timeout(75000)]),
+          );
+        } catch (cause) {
+          const { status, ...failure } = publicAIError(cause);
+          return Response.json(failure, {
+            status,
+            headers: { "Cache-Control": "no-store" },
+          });
+        }
+      }
+    }
     try {
       next = applyAction(
         state,
         input.action,
-        profileSchema.parse(data?.data ?? emptyProfile),
+        profile,
         input.requestId,
+        new Date(),
+        context,
       );
+      if (teacher) {
+        const created = activeSession(next);
+        if (created?.lesson) created.lesson.teacher = teacher;
+      }
     } catch (error) {
       return Response.json(
         {

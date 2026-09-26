@@ -29,10 +29,17 @@ export function fakeAI(body, res, controls) {
   }
   if (!body.stream) {
     res.writeHead(200, { "Content-Type": "application/json" });
-    const candidate =
-      body.text?.format?.name === "profile_memory"
-        ? controls.memoryCandidate
-        : controls.goalCandidate;
+    const candidate = {
+      profile_memory: controls.memoryCandidate,
+      learning_goal: controls.goalCandidate,
+      python_backend_roadmap: controls.roadmapCandidate,
+      lesson_teacher: controls.teacherCandidate ?? {
+        explanation: "analogy",
+        reflection: "test",
+      },
+      project_learn: controls.projectLearnCandidate ?? {focus:"test",criterion:0},
+      project_help: controls.projectHelpCandidate ?? {reply:"Проверь None для отсутствующей записи. Код не запускался; начни с assert find_record([], 1) is None.",decision:"Для отсутствующей записи возвращаем None."},
+    }[body.text?.format?.name];
     return res.end(
       JSON.stringify({
         status: "completed",
