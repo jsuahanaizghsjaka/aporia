@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  personalizeResources,
+  personalizeWeek,
+} from "@/lib/learning/personalization-server";
+import { weekKey } from "@/lib/profile/schedule";
 import { readGoal } from "@/lib/goals/storage";
 import { readRoadmap } from "@/lib/roadmaps/storage";
 import { selectMission } from "@/lib/learning/mission";
@@ -103,8 +108,75 @@ export async function POST(request: Request) {
       );
     let next;
     const profile = profileSchema.parse(data?.data ?? emptyProfile);
-    let context;
+    let context: Parameters<typeof applyAction>[5];
     let teacher;
+    const now = new Date();
+    if (
+      (input.action.type === "recommend_resources" ||
+        input.action.type === "generate_weekly_review") &&
+      input.action.source === "ai"
+    ) {
+      if (!profile.onboardingComplete)
+        return Response.json(
+          { error: "Сначала подтверди профиль." },
+          { status: 422 },
+        );
+      const existing =
+        input.action.type === "generate_weekly_review" &&
+        state.weeklyReviews.some(
+          (r) => r.week === weekKey(now, profile.schedule?.timeZone),
+        );
+      if (!existing) {
+        if (
+          (input.action.type === "recommend_resources" &&
+            state.resourceSelections.length >= 100) ||
+          (input.action.type === "generate_weekly_review" &&
+            state.weeklyReviews.length >= 104)
+        )
+          return Response.json(
+            { error: "История заполнена." },
+            { status: 422 },
+          );
+        try {
+          const personalGoal = await readGoal(session.client, session.user.id);
+          const personalProfile = {
+            ...profile,
+            goal: personalGoal?.summary ?? profile.goal,
+          };
+          const quota = await session.client.rpc("consume_ai_request");
+          if (quota.error) throw new AIError("AI_MEMORY");
+          if (!quota.data) throw new AIError("AI_RATE_LIMIT", 60);
+          const signal = AbortSignal.any([
+            request.signal,
+            AbortSignal.timeout(75000),
+          ]);
+          context = { goal: personalGoal, roadmap: null };
+          if (input.action.type === "recommend_resources")
+            context.resourceIds = await personalizeResources(
+              state,
+              personalProfile,
+              input.action.skill,
+              input.requestId,
+              now,
+              signal,
+            );
+          else
+            context.weeklyFocus = await personalizeWeek(
+              state,
+              personalProfile,
+              input.requestId,
+              now,
+              signal,
+            );
+        } catch (cause) {
+          const { status, ...failure } = publicAIError(cause);
+          return Response.json(failure, {
+            status,
+            headers: { "Cache-Control": "no-store" },
+          });
+        }
+      }
+    }
     if (input.action.type === "choose_project") {
       const goal = await readGoal(session.client, session.user.id);
       if (!goal)
@@ -125,17 +197,35 @@ export async function POST(request: Request) {
           { status: 422 },
         );
       context = { goal, roadmap };
+      if (
+        selectMission(
+          {
+            ...context,
+            state,
+            profile,
+            availableMinutes: input.action.minutes,
+          },
+          now,
+        ).estimated_time === 0
+      )
+        return Response.json(
+          { error: "Сегодня выходной. Измени расписание в профиле." },
+          { status: 422 },
+        );
       if (input.action.teacher === "ai") {
         try {
           const quota = await session.client.rpc("consume_ai_request");
           if (quota.error) throw new AIError("AI_MEMORY");
           if (!quota.data) throw new AIError("AI_RATE_LIMIT", 60);
-          const mission = selectMission({
-            ...context,
-            state,
-            profile,
-            availableMinutes: input.action.minutes,
-          });
+          const mission = selectMission(
+            {
+              ...context,
+              state,
+              profile,
+              availableMinutes: input.action.minutes,
+            },
+            now,
+          );
           teacher = await prepareTeacher(
             profile,
             mission,
@@ -157,7 +247,7 @@ export async function POST(request: Request) {
         input.action,
         profile,
         input.requestId,
-        new Date(),
+        now,
         context,
       );
       if (teacher) {

@@ -405,6 +405,9 @@ try {
       "PASS stages17-20 browser: desktop/mobile, mode, chat, decisions, task result, reload, keyboard, no overflow or console errors",
     );
   }
+} catch (error) {
+  console.error(app.logs());
+  throw error;
 } finally {
   await browser?.close();
   await app.close();

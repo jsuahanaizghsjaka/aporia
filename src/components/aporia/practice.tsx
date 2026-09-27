@@ -19,6 +19,7 @@ import type { PublicQuestion } from "@/lib/learning/types";
 import { useGoal } from "./goal-editor";
 import { MentorChat } from "./mentor-chat";
 import { ModeSwitch } from "./mode-switch";
+import { ResourcesPanel } from "./resources-panel";
 export function QuestionInput({
   question,
   value,
@@ -385,7 +386,7 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
     <section className="glass-panel session-start">
       <span className="quiet-badge">
         <Clock size={15} />
-        {diagnostic ? 10 : minutes} минут
+        {diagnostic ? 10 : mission.estimated_time} минут
       </span>
       <h2>
         {diagnostic
@@ -486,7 +487,10 @@ function StartGate({ diagnostic = false }: { diagnostic?: boolean }) {
         className="primary-button"
         disabled={
           busy ||
-          (!diagnostic && (missionState.loading || !!missionState.error))
+          (!diagnostic &&
+            (missionState.loading ||
+              !!missionState.error ||
+              mission.estimated_time === 0))
         }
         onClick={() =>
           void send(
@@ -639,6 +643,7 @@ export function PracticeScreen() {
       </div>
       <LearningGate>
         <PracticeContent />
+        <ResourcesPanel />
       </LearningGate>
     </div>
   );

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { scheduleSchema } from "./schedule.ts";
 
 export const profileSchema = z
   .object({
@@ -17,6 +18,7 @@ export const profileSchema = z
     hobbies: z.string().trim().max(500).default(""),
     currentProjects: z.string().trim().max(1000).default(""),
     dailyMinutes: z.number().int().min(10).max(120).default(25),
+    schedule: scheduleSchema.nullable().default(null),
     avatarPreset: z
       .enum(["rune", "stones", "orbit", "initials"])
       .default("rune"),

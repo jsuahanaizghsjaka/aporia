@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:personal": "node --experimental-strip-types tests/stages24-27-http.mjs",
+    "test:personal:browser": "node --experimental-strip-types tests/stages24-27-http.mjs --browser",
     "dev": "node scripts/dev.mjs",
     "build": "next build",
     "start": "next start",

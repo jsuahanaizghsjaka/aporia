@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { scheduleSchema } from "@/lib/profile/schedule";
 import { isSameOrigin } from "@/lib/auth/request";
 import { actionSchema, stateSchema } from "@/lib/learning/types";
 import { applyAction, learningView } from "@/lib/learning/engine";
@@ -10,6 +11,7 @@ const inputSchema = z.object({
   roadmap: roadmapRecordSchema.nullable().optional(),
   requestId: z.uuid(),
   profile: z.object({
+    schedule: scheduleSchema.nullable().optional(),
     onboardingComplete: z.boolean(),
     dailyMinutes: z.number().int().min(10).max(120),
     interests: z.string().max(500),

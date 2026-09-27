@@ -1,0 +1,98 @@
+.personalization-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 16px;
+}
+.personalization-controls > .field-label {
+  flex: 1 1 180px;
+}
+.resource-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+.resource-card {
+  min-width: 0;
+  border-top: 1px solid var(--border, #ffffff24);
+  padding-block: 24px 8px;
+  overflow-wrap: anywhere;
+}
+.resource-card h3 {
+  font-size: 1.1rem;
+  margin-block: 10px;
+}
+.resource-rating {
+  border: 0;
+  padding: 16px 0 0;
+  margin: 0;
+}
+.resource-rating legend {
+  font-size: 0.9rem;
+  padding: 0;
+}
+.schedule-editor {
+  border: 0;
+  padding: 20px 0;
+  min-width: 0;
+}
+.schedule-editor legend {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.schedule-toggle {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.schedule-toggle input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.schedule-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.schedule-days label {
+  display: grid;
+  gap: 8px;
+}
+.weekly-snapshot {
+  padding-block: 20px;
+  content-visibility: auto;
+}
+.weekly-snapshot > .secondary-button {
+  margin-top: 12px;
+}
+.weekly-history {
+  border-top: 1px solid var(--border, #ffffff24);
+  padding-top: 16px;
+}
+.weekly-history summary {
+  cursor: pointer;
+  padding-block: 10px;
+}
+.resources-panel button[aria-pressed="true"] {
+  outline: 2px solid var(--accent, #b7a2ff);
+  outline-offset: 2px;
+}
+.personalization-controls button,
+.resource-rating button {
+  min-height: 44px;
+  white-space: normal;
+}
+@media (max-width: 600px) {
+  .personalization-controls {
+    align-items: stretch;
+  }
+  .personalization-controls > * {
+    max-width: 100%;
+  }
+  .weekly-numbers {
+    flex-wrap: wrap;
+  }
+}

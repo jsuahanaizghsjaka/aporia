@@ -8,6 +8,7 @@
 @import "./memory-goals.css";
 @import "./roadmaps.css";
 @import "./learning-history.css";
+@import "./personal-learning.css";
 
 @custom-variant dark (&:is(.dark *));
 

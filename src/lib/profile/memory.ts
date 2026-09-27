@@ -25,6 +25,7 @@ export const memoryCandidateSchema = z
 export type MemoryCandidate = z.infer<typeof memoryCandidateSchema>;
 export const profileMemorySchema = memoryCandidateSchema.extend({
   onboarding_completed: z.boolean(),
+  personal_schedule: profileSchema.shape.schedule.optional(),
 });
 const split = (value: string) => [
   ...new Set(
@@ -48,6 +49,7 @@ export function memoryFromProfile(raw: unknown) {
     preferred_session_length: p.dailyMinutes,
     notes: p.notes,
     onboarding_completed: p.onboardingComplete,
+    personal_schedule: p.schedule,
   };
 }
 export function profileFromMemory(

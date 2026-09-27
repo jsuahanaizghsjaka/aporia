@@ -5,6 +5,8 @@ import {
   skillProgress,
 } from "./selectors.ts";
 import { curriculum } from "./curriculum.ts";
+import { availableToday } from "../profile/schedule.ts";
+import { availableFocus } from "./weekly.ts";
 import { roadmapWithState } from "../roadmaps/derive.ts";
 import type { RoadmapRecord } from "../roadmaps/schema.ts";
 import type { LearningProfile, LearningState, SkillId } from "./types.ts";
@@ -20,11 +22,19 @@ export function selectMission(context: MissionContext, now = new Date()) {
   const current = activeSession(state);
   const minutes =
     current?.lesson?.plan.estimated_time ??
-    Math.min(120, Math.max(5, Math.floor(context.availableMinutes)));
-  let skill: SkillId = recommendedSkill(state);
+    Math.min(
+      profile.schedule ? availableToday(profile, now) : 120,
+      Math.min(120, Math.max(5, Math.floor(context.availableMinutes))),
+    );
+  let skill: SkillId = recommendedSkill(state, now);
   let kind:
-    "onboarding" | "goal" | "diagnostic" | "resume" | "review" | "practice" =
-    "practice";
+    | "onboarding"
+    | "goal"
+    | "diagnostic"
+    | "resume"
+    | "review"
+    | "practice"
+    | "rest" = "practice";
   let reason =
     "Начнём с доступной темы, которой пока не хватает подтверждённой практики.";
   let path = "/learn";
@@ -63,6 +73,14 @@ export function selectMission(context: MissionContext, now = new Date()) {
       kind = "review";
       skill = due[0].split(".")[0] as SkillId;
       reason = "Срок повторения уже наступил. Начнём с самого раннего задания.";
+    } else if (
+      state.focus &&
+      (!state.focusUntil || state.focusUntil > now.toISOString()) &&
+      availableFocus(state).includes(state.focus)
+    ) {
+      skill = state.focus;
+      reason =
+        "Это подтверждённый тобой учебный фокус. Порядок маршрута не изменён.";
     } else if (route) {
       skill = route.skill_id;
       reason = "Это текущий шаг подтверждённого маршрута. " + route.reason;
@@ -78,9 +96,15 @@ export function selectMission(context: MissionContext, now = new Date()) {
         ? " В проекте проверим граничный случай знакомого этапа."
         : " Затем применим навык к следующей части проекта.";
     reason += ` Сегодня используем ${minutes} минут из указанного тобой времени.`;
+    if (minutes === 0) {
+      kind = "rest";
+      path = "/profile";
+      reason =
+        "Сегодня в расписании день без занятий. Отдохни или измени доступное время в профиле.";
+    }
   }
-  const theory = Math.max(1, Math.floor(minutes * 0.2));
-  const project = Math.max(1, Math.floor(minutes * 0.25));
+  const theory = minutes ? Math.max(1, Math.floor(minutes * 0.2)) : 0;
+  const project = minutes ? Math.max(1, Math.floor(minutes * 0.25)) : 0;
   const short = curriculum.find((s) => s.id === skill)?.short ?? "Python";
   return {
     today_skill: skill,
@@ -93,17 +117,19 @@ export function selectMission(context: MissionContext, now = new Date()) {
     kind,
     path,
     title:
-      kind === "resume"
-        ? "Продолжим с того же места"
-        : kind === "review"
-          ? `${short}: время повторить`
-          : kind === "diagnostic"
-            ? "Найдём точку старта"
-            : kind === "onboarding"
-              ? "Сначала познакомимся"
-              : kind === "goal"
-                ? "Определим результат"
-                : `${short}: один понятный шаг`,
+      kind === "rest"
+        ? "Сегодня можно выдохнуть"
+        : kind === "resume"
+          ? "Продолжим с того же места"
+          : kind === "review"
+            ? `${short}: время повторить`
+            : kind === "diagnostic"
+              ? "Найдём точку старта"
+              : kind === "onboarding"
+                ? "Сначала познакомимся"
+                : kind === "goal"
+                  ? "Определим результат"
+                  : `${short}: один понятный шаг`,
     mastery: skillProgress(state, skill),
     savedPlan: current?.lesson?.plan ?? null,
   };

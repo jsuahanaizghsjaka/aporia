@@ -8,20 +8,10 @@ import {
 } from "@/lib/learning/history";
 import { LearningHistory, EvidenceList } from "./learning-history";
 import { useState } from "react";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  ChartLineUp,
-  ClockCounterClockwise,
-} from "@phosphor-icons/react";
+import { ArrowRight, ArrowUpRight, ChartLineUp } from "@phosphor-icons/react";
 import { curriculum } from "@/lib/learning/curriculum";
-import {
-  dueReviews,
-  skillProgress,
-  weeklyFocus,
-  weeklySummary,
-} from "@/lib/learning/selectors";
-import type { SkillId } from "@/lib/learning/types";
+import { dueReviews, skillProgress } from "@/lib/learning/selectors";
+import { WeeklyReviewPanel } from "./weekly-review-panel";
 import { useProfile } from "./profile-provider";
 import { LearningGate, useLearning } from "./learning-provider";
 import { Feedback } from "./practice";
@@ -183,89 +173,6 @@ export function SkillRows({ resources = false }: { resources?: boolean }) {
     </div>
   );
 }
-function WeeklyReview() {
-  const { view, send, busy } = useLearning();
-  const summary = weeklySummary(view.state, new Date());
-  const suggestion = weeklyFocus(view.state, new Date());
-  const [selectedFocus, setFocus] = useState<SkillId | null>(null);
-  const focus = selectedFocus ?? view.state.focus ?? suggestion.skill;
-  return (
-    <section className="glass-panel weekly-panel">
-      <div className="section-heading">
-        <span className="eyebrow">ПОСЛЕДНИЕ 7 ДНЕЙ</span>
-        <ClockCounterClockwise size={22} />
-      </div>
-      <h2>Небольшая пауза, чтобы увидеть путь.</h2>
-      <div className="weekly-numbers">
-        <div>
-          <strong>{summary.sessions}</strong>
-          <span>занятий завершено</span>
-        </div>
-        <div>
-          <strong>{summary.independent}</strong>
-          <span>верных ответов без помощи</span>
-        </div>
-        <div>
-          <strong>{summary.evidence}</strong>
-          <span>новых свидетельств</span>
-        </div>
-      </div>
-      <p>
-        {summary.evidence
-          ? summary.changes
-              .filter((item) => item.delta !== 0)
-              .map(
-                (item) =>
-                  `${item.short}: ${item.delta > 0 ? "+" : ""}${item.delta} п. п.`,
-              )
-              .join(" · ") ||
-            "Оценки стабильны. Повторение уточняет уверенность."
-          : "Пока нет результатов за неделю. Обзор заполнится после первых ответов."}
-      </p>
-      <form
-        className="focus-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void send({ type: "set_focus", skill: focus });
-        }}
-      >
-        <label className="field-label">
-          Фокус следующей недели
-          <select
-            value={focus}
-            onChange={(event) => setFocus(event.target.value as SkillId)}
-          >
-            {curriculum.map((skill) => (
-              <option key={skill.id} value={skill.id}>
-                {skill.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          className="secondary-button"
-          disabled={busy || !view.state.diagnosticComplete}
-        >
-          Подтвердить фокус
-          <ArrowRight size={16} />
-        </button>
-      </form>
-      <p className="quiet-copy">
-        {suggestion.fromFeedback
-          ? "Учтён отзыв о сложном материале. "
-          : "Предлагаем тему, которой полезно уделить внимание. "}
-        Изменения применяются после подтверждения. Если основ пока мало, миссия
-        сначала вернёт к ним.
-      </p>
-      {view.state.focus && (
-        <p className="save-note" role="status">
-          Текущий фокус:{" "}
-          {curriculum.find((skill) => skill.id === view.state.focus)?.short}.
-        </p>
-      )}
-    </section>
-  );
-}
 function ProgressContent() {
   const { view } = useLearning();
   const { href } = useProfile();
@@ -312,7 +219,7 @@ function ProgressContent() {
           <ArrowRight size={16} />
         </Link>
       </div>
-      <WeeklyReview />
+      <WeeklyReviewPanel />
       <LearningHistory />
     </>
   );

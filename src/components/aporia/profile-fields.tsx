@@ -1,5 +1,6 @@
 "use client";
 import type { ProfileView } from "@/lib/profile/schema";
+import { PersonalSchedule } from "./personal-schedule";
 import { profileTextFields } from "@/lib/onboarding/lesson-zero";
 
 export function ProfileFields({
@@ -112,6 +113,7 @@ export function ProfileFields({
           }
         />
       </label>
+      {extended && <PersonalSchedule value={value} onChange={onChange} />}
     </div>
   );
 }

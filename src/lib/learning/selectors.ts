@@ -1,6 +1,8 @@
 import { curriculum } from "./curriculum.ts";
 import type { LearningProfile, LearningState, SkillId } from "./types.ts";
 export const initialLearningState = (): LearningState => ({
+  resourceSelections: [],
+  weeklyReviews: [],
   schema: 1,
   diagnosticComplete: false,
   sessions: [],
@@ -11,6 +13,7 @@ export const initialLearningState = (): LearningState => ({
   feedback: [],
   events: [],
   focus: null,
+  focusUntil: null,
   requestIds: [],
 });
 export function activeSession(state: LearningState) {
@@ -66,13 +69,20 @@ export function dueReviews(state: LearningState, now: Date) {
     .filter(([, review]) => Date.parse(review.due) <= now.getTime())
     .sort((a, b) => a[1].due.localeCompare(b[1].due));
 }
-export function recommendedSkill(state: LearningState): SkillId {
+export function recommendedSkill(
+  state: LearningState,
+  now = new Date(),
+): SkillId {
   const unlocked = curriculum.filter(
     (skill) =>
       !skill.prerequisite ||
       skillProgress(state, skill.prerequisite).mastery >= 35,
   );
-  if (state.focus && unlocked.some((skill) => skill.id === state.focus))
+  if (
+    state.focus &&
+    (!state.focusUntil || state.focusUntil > now.toISOString()) &&
+    unlocked.some((skill) => skill.id === state.focus)
+  )
     return state.focus;
   return [...unlocked].sort(
     (a, b) =>

@@ -1,4 +1,7 @@
 import { teachingStages } from "./curriculum.ts";
+import { resourceSelection } from "./resources.ts";
+import { availableFocus, createWeeklyReview } from "./weekly.ts";
+import { weekKey } from "../profile/schedule.ts";
 import { selectMission, type MissionContext } from "./mission.ts";
 import { resolveTeacher } from "./teacher.ts";
 import {
@@ -123,7 +126,10 @@ export function applyAction(
   profile: LearningProfile,
   requestId: string,
   now = new Date(),
-  context?: Pick<MissionContext, "goal" | "roadmap">,
+  context?: Pick<MissionContext, "goal" | "roadmap"> & {
+    resourceIds?: string[];
+    weeklyFocus?: SkillId;
+  },
 ): LearningState {
   if (current.requestIds.includes(requestId)) return current;
   const state = structuredClone(current),
@@ -134,6 +140,83 @@ export function applyAction(
     "Сначала подтверди цель и профиль в знакомстве.",
   );
   switch (action.type) {
+    case "recommend_resources": {
+      requireThat(
+        state.resourceSelections.length < 100,
+        "Сохранено 100 подборок. Лимит библиотеки достигнут.",
+      );
+      requireThat(
+        action.source !== "ai" || context?.resourceIds,
+        "AI-подбор недоступен. Выбери подготовленные материалы.",
+      );
+      state.resourceSelections.push(
+        resourceSelection(
+          state,
+          profile,
+          action.skill,
+          requestId,
+          now,
+          context?.resourceIds,
+        ),
+      );
+      break;
+    }
+    case "save_resource":
+    case "open_resource":
+    case "rate_resource": {
+      const item = state.resourceSelections
+        .find((s) => s.id === action.selectionId)
+        ?.items.find((i) => i.resourceId === action.resourceId);
+      requireThat(item, "Материал не найден в твоей подборке.");
+      if (action.type === "save_resource") item.savedAt ??= at;
+      else if (action.type === "open_resource") item.openedAt ??= at;
+      else {
+        requireThat(item.openedAt, "Сначала открой и изучи материал.");
+        item.helpful = action.helpful;
+        item.feedbackAt = at;
+      }
+      break;
+    }
+    case "generate_weekly_review": {
+      const week = weekKey(now, profile.schedule?.timeZone);
+      if (state.weeklyReviews.some((r) => r.week === week)) break;
+      requireThat(
+        state.weeklyReviews.length < 104,
+        "История недельных обзоров заполнена.",
+      );
+      requireThat(
+        action.source !== "ai" || context?.weeklyFocus,
+        "AI-обзор недоступен. Выбери обзор по данным.",
+      );
+      state.weeklyReviews.push(
+        createWeeklyReview(
+          state,
+          profile,
+          requestId,
+          now,
+          context?.weeklyFocus,
+        ),
+      );
+      break;
+    }
+    case "confirm_weekly_focus": {
+      const review = state.weeklyReviews.find((r) => r.id === action.reviewId);
+      requireThat(
+        review && review.week === weekKey(now, review.timeZone),
+        "Создай обзор текущей недели.",
+      );
+      requireThat(
+        state.diagnosticComplete &&
+          availableFocus(state).includes(action.skill),
+        "Сначала подтверди базовые навыки в диагностике и практике.",
+      );
+      review.confirmedFocus = action.skill;
+      review.confirmedAt = at;
+      state.focus = action.skill;
+      state.focusUntil = new Date(+now + 7 * DAY).toISOString();
+      event(state, "weekly_focus_confirmed", at);
+      break;
+    }
     case "set_mode":
       requireThat(
         session && session.kind !== "diagnostic",
@@ -185,7 +268,7 @@ export function applyAction(
         "История занятий заполнена. Напиши в поддержку.",
       );
       const lesson = action.type === "start_lesson";
-      const minutes = lesson ? action.minutes : profile.dailyMinutes;
+      let minutes = lesson ? action.minutes : profile.dailyMinutes;
       const mission = selectMission(
         {
           state,
@@ -196,6 +279,11 @@ export function applyAction(
         },
         now,
       );
+      requireThat(
+        mission.estimated_time >= 5,
+        "Сегодня в расписании выходной. Измени время в профиле, если хочешь заниматься.",
+      );
+      minutes = mission.estimated_time;
       const skill = lesson
         ? mission.today_skill
         : (action.skill ?? recommendedSkill(state));
@@ -517,6 +605,7 @@ export function applyAction(
     }
     case "set_focus":
       state.focus = action.skill;
+      state.focusUntil = null;
       event(state, "focus_confirmed", at);
       break;
     case "resource_open":

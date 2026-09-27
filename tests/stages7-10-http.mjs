@@ -67,15 +67,17 @@ try {
     request_id: randomUUID(),
     created_at: new Date().toISOString(),
   });
-  const { onboarding_completed, ...candidate } = memoryFromProfile({
-    ...initial,
-    occupation: "Разработчик",
-    education: "Самостоятельно",
-    weeklyAvailableHours: 6,
-    hobbies: "Бег",
-    notes: "Короткие задачи",
-  });
+  const { onboarding_completed, personal_schedule, ...candidate } =
+    memoryFromProfile({
+      ...initial,
+      occupation: "Разработчик",
+      education: "Самостоятельно",
+      weeklyAvailableHours: 6,
+      hobbies: "Бег",
+      notes: "Короткие задачи",
+    });
   assert.equal(onboarding_completed, true);
+  assert.equal(personal_schedule, null);
   app.controls.memoryCandidate = candidate;
   let res = await post("/api/profile/extract", {});
   assert.equal(res.status, 200, await res.clone().text());

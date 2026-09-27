@@ -31,14 +31,25 @@ export function fakeAI(body, res, controls) {
     res.writeHead(200, { "Content-Type": "application/json" });
     const candidate = {
       profile_memory: controls.memoryCandidate,
+      learning_resources: controls.resourceCandidate ?? {
+        ids: ["python-docs", "think-python"],
+      },
+      weekly_review: controls.weeklyCandidate ?? { focus: "python" },
       learning_goal: controls.goalCandidate,
       python_backend_roadmap: controls.roadmapCandidate,
       lesson_teacher: controls.teacherCandidate ?? {
         explanation: "analogy",
         reflection: "test",
       },
-      project_learn: controls.projectLearnCandidate ?? {focus:"test",criterion:0},
-      project_help: controls.projectHelpCandidate ?? {reply:"Проверь None для отсутствующей записи. Код не запускался; начни с assert find_record([], 1) is None.",decision:"Для отсутствующей записи возвращаем None."},
+      project_learn: controls.projectLearnCandidate ?? {
+        focus: "test",
+        criterion: 0,
+      },
+      project_help: controls.projectHelpCandidate ?? {
+        reply:
+          "Проверь None для отсутствующей записи. Код не запускался; начни с assert find_record([], 1) is None.",
+        decision: "Для отсутствующей записи возвращаем None.",
+      },
     }[body.text?.format?.name];
     return res.end(
       JSON.stringify({

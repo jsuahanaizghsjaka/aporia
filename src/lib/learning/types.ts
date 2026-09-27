@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PersonalSchedule } from "../profile/schedule.ts";
 export const skillIds = [
   "python",
   "git",
@@ -87,6 +88,63 @@ const evidenceSchema = z.object({
   hints_used: z.number().int().min(0).max(5).optional(),
 });
 export const stateSchema = z.object({
+  resourceSelections: z
+    .array(
+      z.object({
+        id: z.uuid(),
+        skill: skillSchema,
+        at: z.iso.datetime(),
+        source: z.enum(["ai", "prepared"]),
+        items: z
+          .array(
+            z.object({
+              resourceId: z.string().max(80),
+              reason: z.string().min(1).max(1000),
+              savedAt: z.iso.datetime().nullable(),
+              openedAt: z.iso.datetime().nullable(),
+              helpful: z.boolean().nullable(),
+              feedbackAt: z.iso.datetime().nullable(),
+            }),
+          )
+          .min(1)
+          .max(3),
+      }),
+    )
+    .max(100)
+    .default([]),
+  weeklyReviews: z
+    .array(
+      z.object({
+        id: z.uuid(),
+        week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        timeZone: z.string().max(80),
+        from: z.iso.datetime(),
+        at: z.iso.datetime(),
+        source: z.enum(["ai", "prepared"]),
+        sessions: z.number().int().nonnegative(),
+        seconds: z.number().int().nonnegative(),
+        untrackedAnswers: z.number().int().nonnegative(),
+        evidence: z.number().int().nonnegative(),
+        changes: z
+          .array(
+            z.object({
+              skill: skillSchema,
+              delta: z.number().int().min(-95).max(95),
+            }),
+          )
+          .max(8),
+        incompleteHistory: z.boolean(),
+        weakSkills: z.array(skillSchema).max(8),
+        projectTasks: z.number().int().min(0).max(8),
+        projectTotal: z.number().int().min(0).max(8),
+        summary: z.string().max(3000),
+        suggestedFocus: skillSchema,
+        confirmedFocus: skillSchema.nullable(),
+        confirmedAt: z.iso.datetime().nullable(),
+      }),
+    )
+    .max(104)
+    .default([]),
   schema: z.literal(1),
   diagnosticComplete: z.boolean(),
   sessions: z.array(sessionSchema).max(1000),
@@ -189,12 +247,43 @@ export const stateSchema = z.object({
     .array(z.object({ name: z.string().max(50), at: z.string() }))
     .max(300),
   focus: skillSchema.nullable(),
+  focusUntil: z.iso.datetime().nullable().default(null),
   requestIds: z.array(z.uuid()).max(200),
 });
 export type LearningState = z.infer<typeof stateSchema>;
 export type Session = LearningState["sessions"][number];
 export type Evidence = LearningState["evidence"][number];
 export const actionSchema = z.discriminatedUnion("type", [
+  z.strictObject({
+    type: z.literal("recommend_resources"),
+    skill: skillSchema,
+    source: z.enum(["ai", "prepared"]),
+  }),
+  z.strictObject({
+    type: z.literal("save_resource"),
+    selectionId: z.uuid(),
+    resourceId: z.string().max(80),
+  }),
+  z.strictObject({
+    type: z.literal("open_resource"),
+    selectionId: z.uuid(),
+    resourceId: z.string().max(80),
+  }),
+  z.strictObject({
+    type: z.literal("rate_resource"),
+    selectionId: z.uuid(),
+    resourceId: z.string().max(80),
+    helpful: z.boolean(),
+  }),
+  z.strictObject({
+    type: z.literal("generate_weekly_review"),
+    source: z.enum(["ai", "prepared"]),
+  }),
+  z.strictObject({
+    type: z.literal("confirm_weekly_focus"),
+    reviewId: z.uuid(),
+    skill: skillSchema,
+  }),
   z.strictObject({
     type: z.literal("set_mode"),
     mode: z.enum(["learn", "help"]),
@@ -261,6 +350,7 @@ export const actionSchema = z.discriminatedUnion("type", [
 ]);
 export type LearningAction = z.infer<typeof actionSchema>;
 export type LearningProfile = {
+  schedule?: PersonalSchedule | null;
   onboardingComplete: boolean;
   dailyMinutes: number;
   interests: string;

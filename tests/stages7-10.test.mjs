@@ -27,7 +27,14 @@ test("memory validates proposals, preserves identity and clears deleted fields",
     education: "College",
     interests: "music, code",
   };
-  const { onboarding_completed, ...candidate } = memoryFromProfile(p);
+  const { onboarding_completed, personal_schedule, ...candidate } =
+    memoryFromProfile(p);
+  assert.equal(personal_schedule, null);
+  assert.equal(
+    memoryCandidateSchema.safeParse({ ...candidate, personal_schedule })
+      .success,
+    false,
+  );
   assert.equal(onboarding_completed, true);
   candidate.education = "";
   candidate.notes = "Short lessons";

@@ -26,3 +26,9 @@ const history = spawnSync(
   { stdio: "inherit", env: process.env },
 );
 if (history.error || history.status !== 0) process.exit(history.status || 1);
+const personal = spawnSync(
+  process.execPath,
+  ["--experimental-strip-types", "tests/stages24-27-http.mjs", "--browser"],
+  { stdio: "inherit", env: process.env },
+);
+if (personal.error || personal.status !== 0) process.exit(personal.status || 1);

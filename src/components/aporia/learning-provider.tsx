@@ -57,7 +57,8 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
   const projectPending = useRef<{ signature: string; id: string } | null>(null);
   useEffect(() => () => projectController.current?.abort(), []);
   const snapshot = useRef<string | null>(null);
-  const { onboardingComplete, dailyMinutes, interests, goal } = profile;
+  const { onboardingComplete, dailyMinutes, interests, goal, schedule } =
+    profile;
   const loadView = useCallback(async () => {
     const raw = preview ? localStorage.getItem(KEY) : null;
     const response = await fetch(
@@ -69,7 +70,13 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               state: raw ? JSON.parse(raw) : undefined,
-              profile: { onboardingComplete, dailyMinutes, interests, goal },
+              profile: {
+                onboardingComplete,
+                dailyMinutes,
+                interests,
+                goal,
+                schedule,
+              },
               requestId: newRequestId(),
             }),
           }
@@ -78,7 +85,7 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     return { data: data as View, raw };
-  }, [preview, onboardingComplete, dailyMinutes, interests, goal]);
+  }, [preview, onboardingComplete, dailyMinutes, interests, goal, schedule]);
   const refresh = useCallback(async () => {
     if (inFlight.current) return;
     const ticket = order.current.next();
@@ -161,7 +168,13 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
         {
           method: "POST",
           signal: AbortSignal.timeout(
-            action.type === "start_lesson" ? 85000 : 20000,
+            [
+              "start_lesson",
+              "recommend_resources",
+              "generate_weekly_review",
+            ].includes(action.type)
+              ? 85000
+              : 20000,
           ),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
@@ -176,6 +189,7 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
                   profile: {
                     onboardingComplete,
                     dailyMinutes,
+                    schedule,
                     interests,
                     goal,
                   },
