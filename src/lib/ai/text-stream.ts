@@ -10,10 +10,11 @@ export async function readAIText(
     for await (const event of readSSE(body)) {
       if (complete) throw new AIError("AI_INVALID_RESPONSE");
       if (
-        ["response.output_text.delta", "response.refusal.delta"].includes(
-          event.type,
-        )
-      ) {
+        event.type === "response.refusal.delta" ||
+        event.type === "response.refusal.done"
+      )
+        throw new AIError("AI_INVALID_RESPONSE");
+      if (event.type === "response.output_text.delta") {
         if (typeof event.delta !== "string")
           throw new AIError("AI_INVALID_RESPONSE");
         text += event.delta;

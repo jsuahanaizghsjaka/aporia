@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+import { uiError } from "@/lib/ui-error";
 import {
   memoryCandidateSchema,
   type MemoryCandidate,
@@ -30,6 +31,7 @@ export function MemoryProposal({
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   async function extract() {
+    if (controller.current) return;
     setBusy(true);
     setError("");
     controller.current = new AbortController();
@@ -48,9 +50,9 @@ export function MemoryProposal({
         version: body.version,
       });
     } catch (cause) {
-      if (!controller.current?.signal.aborted)
-        setError(cause instanceof Error ? cause.message : "Повтори попытку.");
+      if (!controller.current?.signal.aborted) setError(uiError(cause));
     } finally {
+      controller.current = null;
       setBusy(false);
     }
   }
@@ -76,6 +78,18 @@ export function MemoryProposal({
       >
         {busy ? "Собираем предложение…" : "Уточнить профиль из знакомства"}
       </button>
+      {busy && (
+        <button
+          type="button"
+          className="text-link"
+          onClick={() => {
+            controller.current?.abort();
+            setError("Предложение отменено. Профиль не изменён.");
+          }}
+        >
+          Отменить предложение
+        </button>
+      )}
       <p className="quiet-copy">
         AI предложит структуру по твоим словам. Сначала проверь её; изменения
         применятся после сохранения профиля.

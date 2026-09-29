@@ -9,6 +9,13 @@ export async function GET(request: Request) {
     if (code && client) {
       const { data, error } = await client.auth.exchangeCodeForSession(code);
       if (!error && data.user && data.session) {
+        if ("redirectType" in data && data.redirectType === "recovery")
+          return NextResponse.redirect(new URL("/reset-password", url.origin), {
+            headers: {
+              "Cache-Control": "private, no-store",
+              "Referrer-Policy": "no-referrer",
+            },
+          });
         const next = await destinationForUser(
           client,
           data.user.id,

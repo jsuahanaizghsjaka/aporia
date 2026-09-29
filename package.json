@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:reliability": "node --experimental-strip-types --test tests/stages31-34.test.mjs",
+    "test:reliability:http": "node --experimental-strip-types tests/stages31-34-http.mjs",
+    "test:reliability:browser": "node --experimental-strip-types tests/stages31-34-http.mjs --browser",
+    "test:architecture": "node --experimental-strip-types --test tests/stages28-30.test.mjs",
+    "test:architecture:http": "node --experimental-strip-types tests/stages28-30-http.mjs",
     "test:personal": "node --experimental-strip-types tests/stages24-27-http.mjs",
     "test:personal:browser": "node --experimental-strip-types tests/stages24-27-http.mjs --browser",
     "dev": "node scripts/dev.mjs",

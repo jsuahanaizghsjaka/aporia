@@ -45,7 +45,7 @@ try {
   await json(await post("/api/learning", envelope(start)), 422);
   const form = new FormData();
   form.set(
-    "profile",
+    "memory",
     JSON.stringify({
       displayName: "Sinon",
       goal: "Создать API музыки",
@@ -131,7 +131,7 @@ try {
   ])
     assert.ok(field in ctx, field);
   assert.equal(ctx.available_time, 5);
-  assert.match(JSON.stringify(ctx.profile), /короткими подходами/);
+  assert.match(JSON.stringify(ctx.memory.profile), /короткими подходами/);
   assert.equal(
     (await json(await post("/api/learning", started))).version,
     learning.version,
@@ -317,12 +317,19 @@ try {
         page.getByRole("heading", { name: "Есть шаг вперёд." }),
       ).toBeVisible();
       await page.goto(app.base + "/progress");
-      await page.locator(".history-item").first().locator(":scope > summary").click();
+      await page
+        .locator(".history-item")
+        .first()
+        .locator(":scope > summary")
+        .click();
       await expect(
-        page.locator(".history-item").first().getByText(
-          "Проверю, что API возвращает пустой массив для пользователя без треков.",
-          { exact: true },
-        ),
+        page
+          .locator(".history-item")
+          .first()
+          .getByText(
+            "Проверю, что API возвращает пустой массив для пользователя без треков.",
+            { exact: true },
+          ),
       ).toBeVisible();
       assert.equal(
         await page.evaluate(

@@ -38,5 +38,7 @@ export const config = {
     "/auth/:path*",
     "/login",
     "/signup",
+    "/forgot-password",
+    "/reset-password",
   ],
 };

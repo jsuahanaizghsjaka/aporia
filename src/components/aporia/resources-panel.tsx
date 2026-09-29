@@ -103,86 +103,91 @@ export function ResourcesPanel() {
             : "Выбери подборку. AI учитывает профиль, уровень, время и отзывы. Подготовленная подборка работает без AI."}
         </p>
       )}
-      <div className="resource-list">
-        {entries.map(({ selection, item }) => {
-          const resource = findResource(item.resourceId);
-          if (!resource) return null;
-          const target = { selectionId: selection.id, resourceId: resource.id };
-          return (
-            <article
-              className="resource-card"
-              key={`${selection.id}:${resource.id}`}
-            >
-              <span className="eyebrow">
-                {
+      {!!entries.length && (
+        <div className="resource-list">
+          {entries.map(({ selection, item }) => {
+            const resource = findResource(item.resourceId);
+            if (!resource) return null;
+            const target = {
+              selectionId: selection.id,
+              resourceId: resource.id,
+            };
+            return (
+              <article
+                className="resource-card"
+                key={`${selection.id}:${resource.id}`}
+              >
+                <span className="eyebrow">
                   {
-                    docs: "ДОКУМЕНТАЦИЯ",
-                    video: "ВИДЕО",
-                    book: "КНИГА / ГЛАВА",
-                    podcast: "ПОДКАСТ",
-                  }[resource.kind]
-                }{" "}
-                · {selection.source === "ai" ? "AI-подбор" : "Без AI"}
-              </span>
-              <h3>{resource.title}</h3>
-              <p>{item.reason}</p>
-              <p className="quiet-copy">{resource.note}</p>
-              <div className="personalization-controls">
-                <a
-                  className="text-link"
-                  href={resource.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() =>
-                    void send({ type: "open_resource", ...target })
-                  }
-                >
-                  Открыть источник
-                  <span className="sr-only"> в новой вкладке</span> ↗
-                </a>
-                <button
-                  className="secondary-button"
-                  disabled={busy || !!item.savedAt}
-                  onClick={() =>
-                    void send({ type: "save_resource", ...target })
-                  }
-                >
-                  {item.savedAt ? "Сохранено" : "Сохранить ссылку"}
-                </button>
-              </div>
-              {item.openedAt && (
-                <fieldset className="resource-rating">
-                  <legend>После изучения: помогло разобраться?</legend>
-                  <div className="personalization-controls">
-                    {[true, false].map((helpful) => (
-                      <button
-                        key={String(helpful)}
-                        className="secondary-button"
-                        disabled={busy}
-                        aria-pressed={item.helpful === helpful}
-                        onClick={() =>
-                          void send({
-                            type: "rate_resource",
-                            ...target,
-                            helpful,
-                          })
-                        }
-                      >
-                        {helpful ? "Помогло" : "Не помогло"}
-                      </button>
-                    ))}
-                  </div>
-                  {item.feedbackAt && (
-                    <p className="save-note" role="status">
-                      Отзыв сохранён.
-                    </p>
-                  )}
-                </fieldset>
-              )}
-            </article>
-          );
-        })}
-      </div>
+                    {
+                      docs: "ДОКУМЕНТАЦИЯ",
+                      video: "ВИДЕО",
+                      book: "КНИГА / ГЛАВА",
+                      podcast: "ПОДКАСТ",
+                    }[resource.kind]
+                  }{" "}
+                  · {selection.source === "ai" ? "AI-подбор" : "Без AI"}
+                </span>
+                <h3>{resource.title}</h3>
+                <p>{item.reason}</p>
+                <p className="quiet-copy">{resource.note}</p>
+                <div className="personalization-controls">
+                  <a
+                    className="text-link"
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() =>
+                      void send({ type: "open_resource", ...target })
+                    }
+                  >
+                    Открыть источник
+                    <span className="sr-only"> в новой вкладке</span> ↗
+                  </a>
+                  <button
+                    className="secondary-button"
+                    disabled={busy || !!item.savedAt}
+                    onClick={() =>
+                      void send({ type: "save_resource", ...target })
+                    }
+                  >
+                    {item.savedAt ? "Сохранено" : "Сохранить ссылку"}
+                  </button>
+                </div>
+                {item.openedAt && (
+                  <fieldset className="resource-rating">
+                    <legend>После изучения: помогло разобраться?</legend>
+                    <div className="personalization-controls">
+                      {[true, false].map((helpful) => (
+                        <button
+                          key={String(helpful)}
+                          className="secondary-button"
+                          disabled={busy}
+                          aria-pressed={item.helpful === helpful}
+                          onClick={() =>
+                            void send({
+                              type: "rate_resource",
+                              ...target,
+                              helpful,
+                            })
+                          }
+                        >
+                          {helpful ? "Помогло" : "Не помогло"}
+                        </button>
+                      ))}
+                    </div>
+                    {item.feedbackAt && (
+                      <p className="save-note" role="status">
+                        Отзыв сохранён.
+                      </p>
+                    )}
+                  </fieldset>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

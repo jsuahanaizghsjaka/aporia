@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { supabaseConfig } from "@/lib/supabase/config";
 import { stateSchema, type LearningState } from "./types";
 import { initialLearningState } from "./selectors";
+import { validateLearningWrite } from "../ai/contracts";
 export function learningConfigured() {
   return !!(
     supabaseConfig() &&
@@ -44,7 +45,7 @@ export async function writeLearning(
   const { data, error } = await adminClient().rpc("commit_learning_state", {
     _user_id: userId,
     _expected_version: version,
-    _data: state,
+    _data: validateLearningWrite(state),
   });
   if (error) throw new Error("Не удалось сохранить занятие. Повтори действие.");
   return Number(data);

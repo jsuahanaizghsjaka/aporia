@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": [
+    "next-env.d.ts",
+    "src/lib/ai/**/*.ts",
+    "src/prompts/**/*.ts",
+    "src/lib/learning/storage.ts",
+    "src/lib/learning/teacher-server.ts",
+    "src/lib/learning/personalization-server.ts",
+    "src/app/api/mentor/route.ts",
+    "src/app/api/learning/project-chat/route.ts",
+    "src/app/api/learning/project-review/route.ts",
+    "src/app/api/profile/extract/route.ts",
+    "src/app/api/goals/refine/route.ts",
+    "src/app/api/roadmap/propose/route.ts"
+  ]
+}

@@ -114,9 +114,7 @@ function complete(state: LearningState, session: Session, at: string) {
   if (session.kind === "diagnostic") state.diagnosticComplete = true;
   event(
     state,
-    session.kind === "diagnostic"
-      ? "diagnostic_completed"
-      : "session_completed",
+    session.kind === "diagnostic" ? "diagnostic_completed" : "lesson_completed",
     at,
   );
 }
@@ -357,7 +355,7 @@ export function applyAction(
           : {}),
       });
       state.activeSession = requestId;
-      event(state, "session_started", at);
+      event(state, "lesson_started", at);
       break;
     }
     case "finish_theory": {
@@ -557,12 +555,15 @@ export function applyAction(
           state.project.checks[action.skill]?.correct,
         "Сначала сохрани решение и пройди проверку понимания.",
       );
+      const previouslySubmitted =
+        state.project.submissions?.[action.skill]?.artifact === artifact;
       (state.project.submissions ??= {})[action.skill] = {
         artifact,
         report: action.report,
         at,
       };
       event(state, "project_task_submitted", at);
+      if (!previouslySubmitted) event(state, "project_task_completed", at);
       break;
     }
     case "save_decision": {

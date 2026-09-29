@@ -148,6 +148,11 @@ export function AuthForm({
             <ArrowRight size={17} />
           </button>
         </form>
+        {!signup && (
+          <Link className="text-link mt-5" href="/forgot-password">
+            Забыли пароль?
+          </Link>
+        )}
         <div className="auth-switch">
           {signup ? "Уже есть аккаунт?" : "Впервые здесь?"}
           <Link href={signup ? "/login" : "/signup"}>

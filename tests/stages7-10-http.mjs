@@ -112,10 +112,12 @@ try {
   });
   assert.equal(res.status, 200, await res.clone().text());
   await res.text();
-  const instructions = app.controls.aiRequests.at(-1).instructions;
-  assert.match(instructions, /Не больше 30 минут за раз/);
-  assert.match(instructions, /"education":""/);
-  assert.match(instructions, /"hobbies":\[\]/);
+  const memory = JSON.parse(
+    app.controls.aiRequests.at(-1).input[0].content,
+  ).memory;
+  assert.match(JSON.stringify(memory.profile), /Не больше 30 минут за раз/);
+  assert.equal(memory.profile.education, "");
+  assert.deepEqual(memory.profile.hobbies, []);
   assert.equal(deleted.version, 3);
   console.log(
     "PASS stage 7: structured draft, confirmation, validation, field deletion and AI memory after logout/login",

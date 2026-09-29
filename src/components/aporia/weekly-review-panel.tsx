@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { ObservedEvent } from "./observed-event";
 import { curriculum } from "@/lib/learning/curriculum";
 import { availableFocus } from "@/lib/learning/weekly";
 import { weekKey } from "@/lib/profile/schedule";
@@ -22,13 +23,18 @@ function Review({
   current: boolean;
 }) {
   const { view, send, busy } = useLearning();
-  const { href } = useProfile();
+  const { href, preview } = useProfile();
   const [focus, setFocus] = useState(
     review.confirmedFocus ?? review.suggestedFocus,
   );
   const allowed = availableFocus(view.state);
   return (
     <div className="weekly-snapshot">
+      <ObservedEvent
+        name="weekly_review_opened"
+        reviewId={review.id}
+        disabled={preview}
+      />
       <p className="quiet-copy">
         Снимок {date(review.from)} — {date(review.at)} ·{" "}
         {review.source === "ai"
@@ -144,7 +150,11 @@ export function WeeklyReviewPanel() {
     >
       <span className="eyebrow">ЕЖЕНЕДЕЛЬНЫЙ ОБЗОР</span>
       <h2 id="weekly-title">Посмотреть назад. Выбрать следующий шаг.</h2>
-      {busy && <p role="status" className="quiet-copy">Обрабатываем действие…</p>}
+      {busy && (
+        <p role="status" className="quiet-copy">
+          Обрабатываем действие…
+        </p>
+      )}
       {current ? (
         <Review key={current.id} review={current} current />
       ) : (

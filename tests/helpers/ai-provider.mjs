@@ -31,6 +31,10 @@ export function fakeAI(body, res, controls) {
     res.writeHead(200, { "Content-Type": "application/json" });
     const candidate = {
       profile_memory: controls.memoryCandidate,
+      project_review: controls.projectReviewCandidate ?? {
+        reply:
+          "Код не запускался. Добавь проверку пустого списка и выполни тест локально.",
+      },
       learning_resources: controls.resourceCandidate ?? {
         ids: ["python-docs", "think-python"],
       },
@@ -53,19 +57,27 @@ export function fakeAI(body, res, controls) {
     }[body.text?.format?.name];
     return res.end(
       JSON.stringify({
-        status: "completed",
-        output: [
-          {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text:
-                  mode === "malformed" ? "{invalid" : JSON.stringify(candidate),
-              },
-            ],
-          },
-        ],
+        status: mode === "structured-incomplete" ? "incomplete" : "completed",
+        output:
+          mode === "structured-null"
+            ? [null]
+            : [
+                {
+                  type: "message",
+                  content:
+                    mode === "structured-refusal"
+                      ? [{ type: "refusal", refusal: "Cannot respond" }]
+                      : [
+                          {
+                            type: "output_text",
+                            text:
+                              mode === "malformed"
+                                ? "{invalid"
+                                : JSON.stringify(candidate),
+                          },
+                        ],
+                },
+              ],
       }),
     );
   }

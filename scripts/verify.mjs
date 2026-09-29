@@ -31,6 +31,8 @@ for (const task of [
   "test:projects",
   "test:history",
   "test:personal",
+  "test:architecture:http",
+  "test:reliability:http",
 ]) {
   const result = spawnSync(process.execPath, [npm, "run", task], {
     env,

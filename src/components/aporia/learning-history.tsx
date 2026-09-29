@@ -255,7 +255,19 @@ export function LearningHistory() {
           );
         })
       ) : (
-        <p className="quiet-copy">Здесь сохранятся занятия и твои ответы.</p>
+        <div>
+          <p className="quiet-copy">Здесь сохранятся занятия и твои ответы.</p>
+          <Link
+            className="secondary-button"
+            href={href(
+              view.state.diagnosticComplete ? "/learn" : "/diagnostic",
+            )}
+          >
+            {view.state.diagnosticComplete
+              ? "Начать первое занятие"
+              : "Пройти диагностику перед первым занятием"}
+          </Link>
+        </div>
       )}
       {sessions.length > limit && (
         <button

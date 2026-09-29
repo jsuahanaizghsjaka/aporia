@@ -1,4 +1,13 @@
 -- Read-only, run by the project operator. Counts only, no learner text or IDs.
+-- Stage 34: durable allowlisted events, collected since migration 012.
+-- Opened review = first visible opening per learner/review; signup = profile creation.
+select name, date_trunc('day',occurred_at) as day_utc, count(*) as events,
+       count(distinct user_id) as learners
+from public.product_events
+where occurred_at >= now() - interval '7 days'
+group by 1,2 order by 2 desc,1;
+
+-- Operational legacy detail (different population/window, do not add to above).
 -- Rolling event window: the latest 300 events per learner (not a billing ledger).
 select event->>'name' as event_name,
        date_trunc('day', (event->>'at')::timestamptz) as day_utc,

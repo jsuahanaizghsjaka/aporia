@@ -87,6 +87,7 @@ export async function learningDatabase() {
         "rpc/commit_goal",
         "rpc/commit_learning_state",
         "rpc/commit_roadmap",
+        "rpc/observe_product_event",
       ].includes(name)
     )
       return false;
@@ -98,6 +99,10 @@ export async function learningDatabase() {
       let data = await asUser(
         current?.id,
         async (tx) => {
+          if (name === "rpc/observe_product_event") {
+            await tx.query("select public.observe_product_event($1,$2)", [body._name, body._review_id]);
+            return null;
+          }
           if (name === "rpc/commit_roadmap")
             return Number(
               (

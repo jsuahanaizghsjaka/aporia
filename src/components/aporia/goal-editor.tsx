@@ -1,4 +1,5 @@
 "use client";
+import { uiError } from "@/lib/ui-error";
 import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
@@ -24,7 +25,12 @@ export function useGoal() {
           const raw = localStorage.getItem(storageKey);
           goal = raw ? goalRecordSchema.parse(JSON.parse(raw)) : null;
         } else {
-          const res = await fetch("/api/goals", { cache: "no-store", signal });
+          const res = await fetch("/api/goals", {
+            cache: "no-store",
+            signal: signal
+              ? AbortSignal.any([signal, AbortSignal.timeout(20000)])
+              : AbortSignal.timeout(20000),
+          });
           const body = await res.json();
           if (!res.ok) throw new Error(body.error);
           goal = body.goal ? goalRecordSchema.parse(body.goal) : null;
@@ -35,10 +41,10 @@ export function useGoal() {
           setState((s) => ({
             ...s,
             loaded: true,
-            error:
-              cause instanceof Error
-                ? cause.message
-                : "Не удалось загрузить цель.",
+            error: uiError(
+              cause,
+              "Не удалось загрузить цель. Повтори попытку.",
+            ),
           }));
       }
     },
@@ -110,12 +116,15 @@ function GoalForm({
     [date, setDate] = useState(initial?.target_date ?? ""),
     [wish, setWish] = useState(profile.goal),
     [busy, setBusy] = useState(false),
+    [refining, setRefining] = useState(false),
     [error, setError] = useState(""),
     [proposal, setProposal] = useState(false),
     [dirty, setDirty] = useState(false),
     [saved, setSaved] = useState(false);
   const form = useRef<HTMLFormElement>(null),
     pending = useRef<{ signature: string; id: string } | null>(null);
+  const aiController = useRef<AbortController | null>(null);
+  useEffect(() => () => aiController.current?.abort(), []);
   useEffect(() => {
     if (!dirty) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -127,6 +136,10 @@ function GoalForm({
     setSaved(false);
   }
   async function refine() {
+    if (aiController.current || busy) return;
+    const active = new AbortController();
+    aiController.current = active;
+    setRefining(true);
     setBusy(true);
     setError("");
     try {
@@ -134,7 +147,7 @@ function GoalForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ wish }),
-        signal: AbortSignal.timeout(90000),
+        signal: AbortSignal.any([active.signal, AbortSignal.timeout(85000)]),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
@@ -145,9 +158,13 @@ function GoalForm({
       change();
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Не удалось уточнить цель.",
+        active.signal.aborted
+          ? "Предложение отменено. Твоя цель не изменена."
+          : uiError(cause),
       );
     } finally {
+      aiController.current = null;
+      setRefining(false);
       setBusy(false);
     }
   }
@@ -216,17 +233,22 @@ function GoalForm({
       pending.current = null;
       await onSaved();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Не удалось сохранить цель. Повтори попытку.",
-      );
+      setError(uiError(cause, "Не удалось сохранить цель. Повтори попытку."));
     } finally {
       setBusy(false);
     }
   }
   return (
     <form ref={form} onSubmit={save} aria-busy={busy}>
+      {refining && (
+        <button
+          className="text-link"
+          type="button"
+          onClick={() => aiController.current?.abort()}
+        >
+          Отменить предложение AI
+        </button>
+      )}
       <fieldset
         disabled={busy || !profile.onboardingComplete}
         className="goal-fields"

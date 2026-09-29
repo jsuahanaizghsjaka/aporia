@@ -15,6 +15,7 @@ import {
   PreviewConflict,
 } from "@/lib/preview-storage";
 import { newRequestId } from "@/lib/request-id";
+import { uiError } from "@/lib/ui-error";
 import type {
   LearningAction,
   LearningView,
@@ -42,6 +43,8 @@ const LearningContext = createContext<{
   review: (skill: SkillId) => Promise<boolean>;
   askProject: (skill: SkillId, message: string) => Promise<boolean>;
   cancelProject: () => void;
+  cancel: () => void;
+  retry: () => Promise<unknown>;
 } | null>(null);
 export function LearningProvider({ children }: { children: React.ReactNode }) {
   const { profile, preview } = useProfile();
@@ -54,8 +57,21 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     pending = useRef<{ signature: string; id: string } | null>(null);
   const order = useRef(createRequestOrder());
   const projectController = useRef<AbortController | null>(null);
+  const actionController = useRef<AbortController | null>(null);
+  const retryAction = useRef<
+    | { kind: "send"; action: LearningAction }
+    | { kind: "review"; skill: SkillId }
+    | { kind: "project"; skill: SkillId; message: string }
+    | null
+  >(null);
   const projectPending = useRef<{ signature: string; id: string } | null>(null);
-  useEffect(() => () => projectController.current?.abort(), []);
+  useEffect(
+    () => () => {
+      projectController.current?.abort();
+      actionController.current?.abort();
+    },
+    [],
+  );
   const snapshot = useRef<string | null>(null);
   const { onboardingComplete, dailyMinutes, interests, goal, schedule } =
     profile;
@@ -99,9 +115,10 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       if (!order.current.isCurrent(ticket)) return;
       setError(
-        error instanceof Error
-          ? error.message
-          : "Не удалось загрузить занятия.",
+        uiError(
+          error,
+          "Не удалось загрузить занятия. Проверь соединение и повтори.",
+        ),
       );
     } finally {
       if (order.current.isCurrent(ticket)) setLoading(false);
@@ -121,9 +138,10 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
       .catch((cause) => {
         if (currentOrder.isCurrent(ticket))
           setError(
-            cause instanceof Error
-              ? cause.message
-              : "Не удалось загрузить занятия.",
+            uiError(
+              cause,
+              "Не удалось загрузить занятия. Проверь соединение и повтори.",
+            ),
           );
       })
       .finally(() => {
@@ -161,21 +179,27 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     if (pending.current?.signature !== signature)
       pending.current = { signature, id: newRequestId() };
     const requestId = pending.current.id;
+    const controller = new AbortController();
+    actionController.current = controller;
+    retryAction.current = { kind: "send", action };
     const perform = async () => {
       const raw = snapshot.current;
       const response = await fetch(
         preview ? "/api/learning/preview" : "/api/learning",
         {
           method: "POST",
-          signal: AbortSignal.timeout(
-            [
-              "start_lesson",
-              "recommend_resources",
-              "generate_weekly_review",
-            ].includes(action.type)
-              ? 85000
-              : 20000,
-          ),
+          signal: AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(
+              [
+                "start_lesson",
+                "recommend_resources",
+                "generate_weekly_review",
+              ].includes(action.type)
+                ? 85000
+                : 20000,
+            ),
+          ]),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             preview
@@ -217,6 +241,7 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
       order.current.next();
       setView(data);
       pending.current = null;
+      retryAction.current = null;
       return true;
     };
     try {
@@ -226,13 +251,14 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       if (error instanceof PreviewConflict) pending.current = null;
       setError(
-        error instanceof Error
-          ? error.message
-          : "Связь прервалась. Повтори действие — ответ не будет засчитан дважды.",
+        controller.signal.aborted
+          ? "Ожидание отменено. Сервер мог сохранить результат: обнови данные или повтори действие без двойного зачёта."
+          : uiError(error),
       );
       return false;
     } finally {
       inFlight.current = false;
+      actionController.current = null;
       setBusy(false);
     }
   };
@@ -248,10 +274,16 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     order.current.next();
     setBusy(true);
     setError("");
+    const controller = new AbortController();
+    actionController.current = controller;
+    retryAction.current = { kind: "review", skill };
     try {
       const response = await fetch("/api/learning/project-review", {
         method: "POST",
-        signal: AbortSignal.timeout(90000),
+        signal: AbortSignal.any([
+          controller.signal,
+          AbortSignal.timeout(85000),
+        ]),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skill }),
       });
@@ -259,14 +291,18 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) throw new Error(data.error);
       order.current.next();
       setView(data);
+      retryAction.current = null;
       return true;
     } catch (error) {
       setError(
-        error instanceof Error ? error.message : "Разбор временно недоступен.",
+        controller.signal.aborted
+          ? "Ожидание отменено. Обнови данные перед повторным разбором."
+          : uiError(error, "Разбор временно недоступен. Попробуй снова."),
       );
       return false;
     } finally {
       inFlight.current = false;
+      actionController.current = null;
       setBusy(false);
     }
   };
@@ -284,6 +320,7 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
     setError("");
     const controller = new AbortController();
     projectController.current = controller;
+    retryAction.current = { kind: "project", skill, message };
     const signature = JSON.stringify({ skill, message });
     if (projectPending.current?.signature !== signature)
       projectPending.current = { signature, id: newRequestId() };
@@ -310,14 +347,13 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
       }
       setView(data);
       projectPending.current = null;
+      retryAction.current = null;
       return true;
     } catch (cause) {
       setError(
         controller.signal.aborted
           ? "Запрос отменён. Если сервер уже успел сохранить ответ, он появится после обновления данных."
-          : cause instanceof Error
-            ? cause.message
-            : "Связь прервалась. Можно повторить вопрос.",
+          : uiError(cause, "Связь прервалась. Можно повторить вопрос."),
       );
       return false;
     } finally {
@@ -339,6 +375,17 @@ export function LearningProvider({ children }: { children: React.ReactNode }) {
         review,
         askProject,
         cancelProject: () => projectController.current?.abort(),
+        cancel: () => {
+          actionController.current?.abort();
+          projectController.current?.abort();
+        },
+        retry: () => {
+          const action = retryAction.current;
+          if (!action) return refresh();
+          if (action.kind === "send") return send(action.action);
+          if (action.kind === "review") return review(action.skill);
+          return askProject(action.skill, action.message);
+        },
       }}
     >
       {children}
@@ -351,7 +398,7 @@ export function useLearning() {
   return context;
 }
 export function LearningGate({ children }: { children: React.ReactNode }) {
-  const { loading, ready, error, busy, refresh } = useLearning();
+  const { loading, ready, error, busy, refresh, cancel, retry } = useLearning();
   const { preview } = useProfile();
   return (
     <>
@@ -362,9 +409,24 @@ export function LearningGate({ children }: { children: React.ReactNode }) {
         </p>
       )}
       <div aria-live="polite">
+        {busy && (
+          <div className="learning-error" role="status">
+            <p>Обрабатываем действие…</p>
+            <button className="text-link" onClick={cancel}>
+              Отменить ожидание
+            </button>
+          </div>
+        )}
         {error && (
           <div className="learning-error" role="alert">
             <p>{error}</p>
+            <button
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => void retry()}
+            >
+              Повторить попытку
+            </button>
             <button
               className="text-link"
               disabled={busy}

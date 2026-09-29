@@ -22,6 +22,7 @@ export async function startAuthApp({
   const controls = {
     profileUnavailable: false,
     logoutUnavailable: false,
+    recoveryUnavailable: false,
     aiMode: "success",
     aiRequests: [],
     aiAborted: 0,
@@ -127,6 +128,16 @@ export async function startAuthApp({
             code: "invalid_credentials",
           });
         return send(200, issueSession(record.user));
+      }
+      if (url.pathname === "/auth/v1/recover") {
+        if (controls.recoveryUnavailable) return send(503, { msg: "PRIVATE_RECOVERY_DETAIL" });
+        if (users.has(body.email)) codes.set(body.email, { code: randomUUID(), challenge: body.code_challenge });
+        return send(200, {});
+      }
+      if (url.pathname === "/auth/v1/user" && req.method === "PUT") {
+        if (!current) return send(401, { msg: "No session" });
+        users.get(current.email).password = body.password;
+        return send(200, current);
       }
       if (url.pathname === "/auth/v1/user")
         return send(current ? 200 : 401, current || { msg: "No session" });
