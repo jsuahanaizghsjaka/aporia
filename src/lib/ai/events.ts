@@ -26,7 +26,13 @@ export async function* readSSE(body: ReadableStream<Uint8Array>) {
           yield event as {
             type: string;
             delta?: string;
-            response?: { status?: string; output?: unknown[] };
+            code?: unknown;
+            error?: { code?: unknown };
+            response?: {
+              status?: string;
+              output?: unknown[];
+              error?: { code?: unknown };
+            };
           };
         }
       }

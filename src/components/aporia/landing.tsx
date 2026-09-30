@@ -8,12 +8,15 @@ function LandingContent({ configured }: { configured: boolean }) {
   const { motion, setMotion } = useProfile();
   return (
     <div className={`landing ${motion ? "" : "motion-off"}`}>
+      <a className="skip-link" href="#main-content">
+        К содержимому
+      </a>
       <div className="ambient-background" aria-hidden="true">
         <span />
         <span />
       </div>
       <header className="landing-nav">
-        <Link className="brand" href="/" aria-label="Aporia — главная">
+        <Link className="brand" href="/" aria-label="Aporia: главная">
           <span className="brand-mark">
             <Rune />
           </span>
@@ -25,96 +28,109 @@ function LandingContent({ configured }: { configured: boolean }) {
             onClick={() => setMotion(!motion)}
             aria-label={motion ? "Остановить анимацию" : "Включить анимацию"}
           >
-            {motion ? <Pause size={18} /> : <Play size={18} />}
+            {motion ? (
+              <Pause size={18} aria-hidden="true" />
+            ) : (
+              <Play size={18} aria-hidden="true" />
+            )}
           </button>
           <Link className="text-link" href="/login">
             Войти
-            <ArrowUpRight size={15} />
+            <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
         </div>
       </header>
-      <main>
+      <main id="main-content">
         <section className="landing-hero">
           <div>
-            <p className="eyebrow">
-              <span className="status-dot" /> ТВОЙ ПЕРСОНАЛЬНЫЙ МЕНТОР
-            </p>
+            <p className="eyebrow">ТВОЙ ПЕРСОНАЛЬНЫЙ МЕНТОР</p>
             <h1>
-              Меньше потерянности.
-              <br />
-              <em>Больше понимания.</em>
+              Твой следующий шаг в <em>Python backend.</em>
             </h1>
             <p>
-              Путь в Python backend начинается с тебя. Aporia помогает выбрать
-              следующий шаг, разобраться в задаче и увидеть, что действительно
-              получается.
+              Ментор, который помнит твою цель, подбирает практику и помогает
+              собрать работающий проект в твоём темпе.
             </p>
             <div className="exercise-actions">
               <Link
                 className="primary-button"
                 href={configured ? "/signup" : "/preview"}
               >
-                {configured ? "Начать свой путь" : "Попробовать Aporia"}
-                <ArrowUpRight size={19} />
+                {configured ? "Начать обучение" : "Посмотреть демо"}
+                <ArrowUpRight size={19} aria-hidden="true" />
               </Link>
               {configured && (
                 <Link className="text-link" href="/preview">
-                  Сначала посмотреть
-                  <ArrowRight size={15} />
+                  Посмотреть демо
+                  <ArrowRight size={15} aria-hidden="true" />
                 </Link>
               )}
             </div>
-            <p className="quiet-copy">
-              Ранняя версия · один маршрут · в твоём темпе
-            </p>
           </div>
           <MentorVisual />
         </section>
-        <section className="landing-steps" aria-label="Как устроено обучение">
-          <article>
-            <span>01 / ЗНАКОМСТВО</span>
-            <h2>Сначала — твоя цель.</h2>
-            <p>
-              Расскажи об опыте, интересах и времени. Подтверди профиль, который
-              ментор будет помнить.
-            </p>
-          </article>
-          <article>
-            <span>02 / ПРАКТИКА</span>
-            <h2>Один понятный шаг.</h2>
-            <p>
-              Диагностика задаёт старт. Подсказки помогают дойти до решения, а
-              свой проект связывает темы.
-            </p>
-          </article>
-          <article>
-            <span>03 / ПОНИМАНИЕ</span>
-            <h2>Прогресс с основанием.</h2>
-            <p>
-              Навыки растут по результатам заданий. Повторение возвращает к
-              тому, что полезно закрепить.
-            </p>
-          </article>
+        <section className="landing-problem" aria-labelledby="problem-title">
+          <h2 id="problem-title">Материалов много. С чего продолжить?</h2>
+          <p>
+            Вкладки с курсами копятся, а связать темы в работающий проект всё
+            ещё трудно. Aporia превращает твою цель в конкретную практику на
+            сегодня.
+          </p>
+        </section>
+        <section className="landing-method" aria-labelledby="method-title">
+          <h2 id="method-title">От знакомства до своего проекта.</h2>
+          <ol className="landing-journey">
+            {[
+              [
+                "Знакомимся",
+                "Расскажи о цели, опыте и свободном времени. Исправь и подтверди профиль, который ментор будет помнить.",
+              ],
+              [
+                "Строим маршрут",
+                "Короткая диагностика покажет стартовый уровень. Подтверди путь к своей цели и узнай, с чего начать сегодня.",
+              ],
+              [
+                "Разбираемся",
+                "Короткое объяснение, задача и подсказки по шагам. Если нужен прямой ответ, переключись в режим помощи.",
+              ],
+              [
+                "Создаём",
+                "Применяй знания в своём backend-проекте: от первого Python-кода до API, тестов и Docker.",
+              ],
+              [
+                "Закрепляем",
+                "Смотри, какие ответы подтверждают твой уровень. Возвращайся к трудным темам и корректируй маршрут по итогам недели.",
+              ],
+            ].map(([title, description]) => (
+              <li key={title}>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </li>
+            ))}
+          </ol>
         </section>
         <section className="landing-invite glass-panel">
           <div>
-            <p className="eyebrow">НЕ НУЖНО ЗНАТЬ ВСЁ ЗАРАНЕЕ</p>
-            <h2>Достаточно первого вопроса.</h2>
+            <h2>Начни со своей цели.</h2>
             <p>
-              Посмотри, как устроены занятия, без регистрации. Личная память и
-              AI-диалог работают в аккаунте при подключённых сервисах.
+              Первый трек: Python backend. Демо доступно без регистрации,
+              аккаунт сохраняет твой профиль и занятия. Ответы AI могут
+              ошибаться: проверяй код на практике.
             </p>
           </div>
-          <Link className="secondary-button" href="/preview">
-            Открыть пространство
-            <ArrowUpRight size={17} />
+          <Link
+            className="primary-button"
+            href={configured ? "/signup" : "/preview"}
+          >
+            {configured ? "Начать обучение" : "Посмотреть демо"}
+            <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
         </section>
       </main>
       <footer className="landing-footer">
         <span>Aporia · учиться с пониманием</span>
         <Link href="/privacy">О твоих данных</Link>
-        <Link href="/preview">Предпросмотр</Link>
+        <Link href="/preview">Посмотреть демо</Link>
       </footer>
     </div>
   );

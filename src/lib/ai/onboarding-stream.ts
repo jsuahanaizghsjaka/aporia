@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { readSSE } from "./events.ts";
-import { AIError } from "./errors.ts";
+import { AIError, isAIQuotaCode } from "./errors.ts";
 import {
   applyOnboardingAction,
   missingOnboarding,
@@ -35,7 +35,13 @@ export async function readOnboardingResponse(
       } else if (
         ["error", "response.failed", "response.incomplete"].includes(event.type)
       )
-        throw new AIError("AI_INVALID_RESPONSE");
+        throw new AIError(
+          isAIQuotaCode(
+            event.code ?? event.error?.code ?? event.response?.error?.code,
+          )
+            ? "AI_QUOTA"
+            : "AI_INVALID_RESPONSE",
+        );
       else if (event.type === "response.completed") {
         if (
           event.response?.status !== "completed" ||

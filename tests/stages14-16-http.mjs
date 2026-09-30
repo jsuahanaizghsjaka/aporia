@@ -45,7 +45,7 @@ try {
   await json(await post("/api/learning", envelope(start)), 422);
   const form = new FormData();
   form.set(
-    "memory",
+    "profile",
     JSON.stringify({
       displayName: "Sinon",
       goal: "Создать API музыки",
@@ -121,7 +121,7 @@ try {
   assert.equal(current().lesson.plan.estimated_time, 5);
   const ctx = JSON.parse(app.controls.aiRequests.at(-1).input);
   for (const field of [
-    "profile",
+    "memory",
     "goal",
     "skill",
     "mastery",

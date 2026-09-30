@@ -88,6 +88,17 @@ const evidenceSchema = z.object({
   hints_used: z.number().int().min(0).max(5).optional(),
 });
 export const stateSchema = z.object({
+  sessionFeedback: z
+    .array(
+      z.object({
+        session_id: z.uuid(),
+        helpful: z.boolean(),
+        note: z.string().max(500),
+        at: z.iso.datetime(),
+      }),
+    )
+    .max(1000)
+    .default([]),
   resourceSelections: z
     .array(
       z.object({
@@ -254,6 +265,12 @@ export type LearningState = z.infer<typeof stateSchema>;
 export type Session = LearningState["sessions"][number];
 export type Evidence = LearningState["evidence"][number];
 export const actionSchema = z.discriminatedUnion("type", [
+  z.strictObject({
+    type: z.literal("session_feedback"),
+    session_id: z.uuid(),
+    helpful: z.boolean(),
+    note: z.string().trim().max(500),
+  }),
   z.strictObject({
     type: z.literal("recommend_resources"),
     skill: skillSchema,

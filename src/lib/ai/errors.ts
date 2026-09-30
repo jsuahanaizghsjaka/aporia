@@ -18,6 +18,19 @@ export class AIError extends Error {
     this.retryAfter = retryAfter;
   }
 }
+export function isAIQuotaCode(code: unknown) {
+  return (
+    typeof code === "string" &&
+    [
+      "insufficient_quota",
+      "credit_balance_exhausted",
+      "billing_hard_limit_reached",
+      "organization_usage_limit_reached",
+      "organization_spend_limit_exceeded",
+      "project_spend_limit_exceeded",
+    ].includes(code)
+  );
+}
 export function retryAfterSeconds(value: string | null, now = Date.now()) {
   if (!value?.trim()) return undefined;
   const seconds = /^\d+(\.\d+)?$/.test(value.trim())

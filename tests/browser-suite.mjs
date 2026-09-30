@@ -32,3 +32,14 @@ const personal = spawnSync(
   { stdio: "inherit", env: process.env },
 );
 if (personal.error || personal.status !== 0) process.exit(personal.status || 1);
+for (const file of [
+  "tests/stages31-34-http.mjs",
+  "tests/stages35-39-http.mjs",
+]) {
+  const result = spawnSync(
+    process.execPath,
+    ["--experimental-strip-types", file, "--browser"],
+    { stdio: "inherit", env: process.env },
+  );
+  if (result.error || result.status !== 0) process.exit(result.status || 1);
+}

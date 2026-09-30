@@ -31,13 +31,13 @@
 
 Домен зарегистрирован в Timeweb и привязан к disbit-prod. Это не подтверждает публикацию Aporia на домене. Корневые DNS и сервер Disbit в этой работе не менялись.
 
-Согласован Resend SMTP и отдельный отправитель `Aporia <no-reply@auth.aporiax1.tech>`. На 30 сентября поддомен Verified, ключ Aporia Supabase Auth создан с Sending access только на него. Поля Supabase заполнены, но настройки не сохранены: владелец переносит ключ в Password и сохраняет их сам.
+Согласован Resend SMTP и отдельный отправитель `Aporia <no-reply@auth.aporiax1.tech>`. На 30 сентября поддомен Verified, ключ Aporia Supabase Auth создан с Sending access только на него. После действия владельца сохранённая конфигурация SMTP проверена: `smtp.resend.com`, порт 465, пользователь `resend`, указанный отправитель. Это подтверждает настройки, но не доставку письма: живой сценарий регистрации/восстановления ещё не завершён.
 
 1. Войти в Resend, добавить отправляющий поддомен `auth.aporiax1.tech`.
 2. В Timeweb добавить только точные DNS-записи из Resend. Для текущего поддомена сервис выдал DKIM TXT и две CNAME (не типовые MX/SPF): они уже внесены и подтверждены. Не заменять A-запись сайта или MX корневого домена.
 3. Создать ограниченный отправкой ключ для этого домена; не присылать его в чат. Настроить Supabase Authentication → Email → SMTP по актуальным параметрам Resend. Значение пароля вводит владелец в защищённое поле.
 4. Отключить tracking ссылок/открытий для Auth-писем. Сохранить `{{ .ConfirmationURL }}` в шаблоне Reset password — это ссылка Supabase, а не просто адрес страницы формы.
-5. Пока приложение работает только локально, оставить Site URL `http://localhost:3000` и callback `http://localhost:3000/auth/callback`. После отдельного deployment проверить HTTPS и добавить точный `https://aporiax1.tech/auth/callback`, затем изменить Site URL.
+5. Пока production-настройка не подтверждена, сохранить Site URL `http://localhost:3000` и callback `http://localhost:3000/auth/callback`. Пользователь выбрал основной сайт `https://aporiax1.vercel.app`: после подтверждения добавить его точный `/auth/callback` и изменить Site URL, сохранив localhost. Купленный домен не перенаправлять с Disbit без отдельного согласования.
 6. Запросить письмо на согласованный тестовый адрес, получить его, открыть один раз, изменить пароль вручную, проверить старый/новый пароль и повторное использование ссылки. Проверить также доставку регистрации.
 
 Источники: [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp), [Resend SMTP для Supabase](https://resend.com/docs/send-with-supabase-smtp). Стандартная почта Supabase ограничена адресами команды и не заменяет production SMTP.

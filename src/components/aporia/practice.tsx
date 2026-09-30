@@ -1,4 +1,5 @@
 "use client";
+import { SessionFeedback } from "./session-feedback";
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -610,7 +611,7 @@ function PracticeContent() {
                 {last.questions.length} ответов верны. Сохранили результаты и
                 назначили повторение.
               </p>
-              <Feedback key={last.id} target={last.id} />
+              <SessionFeedback key={last.id} sessionId={last.id} />
               <Link className="text-link" href={href("/progress")}>
                 Посмотреть, что изменилось
                 <ArrowUpRight size={15} />

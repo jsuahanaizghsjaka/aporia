@@ -1,5 +1,5 @@
 import { readSSE } from "./events.ts";
-import { AIError } from "./errors.ts";
+import { AIError, isAIQuotaCode } from "./errors.ts";
 export async function readAIText(
   body: ReadableStream<Uint8Array>,
   onDelta: (text: string) => void,
@@ -27,7 +27,13 @@ export async function readAIText(
       } else if (
         ["error", "response.failed", "response.incomplete"].includes(event.type)
       )
-        throw new AIError("AI_INVALID_RESPONSE");
+        throw new AIError(
+          isAIQuotaCode(
+            event.code ?? event.error?.code ?? event.response?.error?.code,
+          )
+            ? "AI_QUOTA"
+            : "AI_INVALID_RESPONSE",
+        );
     }
     if (!complete || !text.trim()) throw new AIError("AI_INVALID_RESPONSE");
     return text;

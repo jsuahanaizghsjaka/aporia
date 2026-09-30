@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:release": "node --experimental-strip-types tests/stages35-39-http.mjs",
+    "test:release:browser": "node --experimental-strip-types tests/stages35-39-http.mjs --browser",
     "test:reliability": "node --experimental-strip-types --test tests/stages31-34.test.mjs",
     "test:reliability:http": "node --experimental-strip-types tests/stages31-34-http.mjs",
     "test:reliability:browser": "node --experimental-strip-types tests/stages31-34-http.mjs --browser",

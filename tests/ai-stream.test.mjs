@@ -2,11 +2,48 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readAIText } from "../src/lib/ai/text-stream.ts";
 import { createAIClient } from "../src/lib/ai/client.ts";
+import { readOnboardingResponse } from "../src/lib/ai/onboarding-stream.ts";
+import { publicAIError } from "../src/lib/ai/errors.ts";
 
 const delta = { type: "response.output_text.delta", delta: "Привет 👋" };
 const done = { type: "response.completed", response: { status: "completed" } };
 const sse = (events) =>
   events.map((e) => `data: ${JSON.stringify(e)}\r\n\r\n`).join("");
+
+test("HTTP 200 streaming quota failures are non-retryable, safe and never complete either chat flow", async () => {
+  for (const event of [
+    {
+      type: "error",
+      code: "credit_balance_exhausted",
+      message: "PRIVATE_PROVIDER_DETAIL",
+    },
+    {
+      type: "response.failed",
+      response: {
+        status: "failed",
+        error: {
+          code: "insufficient_quota",
+          message: "PRIVATE_PROVIDER_DETAIL",
+        },
+      },
+    },
+  ])
+    for (const flow of ["text", "onboarding"]) {
+      const body = new Response(sse([delta, event])).body;
+      await assert.rejects(
+        flow === "text"
+          ? readAIText(body, () => {})
+          : readOnboardingResponse(body, {}, [], () => {}),
+        (error) => {
+          const safe = publicAIError(error);
+          assert.equal(safe.code, "AI_QUOTA");
+          assert.equal(safe.retryable, false);
+          assert.doesNotMatch(JSON.stringify(safe), /PRIVATE_PROVIDER_DETAIL/);
+          return true;
+        },
+      );
+    }
+});
 
 test("text chat preserves Cyrillic and emoji across single-byte SSE chunks", async () => {
   const bytes = new TextEncoder().encode(sse([delta, done]));

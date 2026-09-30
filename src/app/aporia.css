@@ -2719,7 +2719,7 @@ progress::-moz-progress-bar {
   }
 }
 .landing {
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   overflow: clip;
   padding: 0 clamp(22px, 6vw, 100px);
@@ -2727,7 +2727,7 @@ progress::-moz-progress-bar {
   margin-inline: auto;
 }
 .landing-nav {
-  height: 100px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2746,7 +2746,7 @@ progress::-moz-progress-bar {
   padding: 60px 0 80px;
 }
 .landing-hero h1 {
-  font-size: clamp(40px, 4.2vw, 65px);
+  font-size: clamp(36px, 3.6vw, 56px);
   font-weight: 450;
   line-height: 1.12;
   letter-spacing: -0.06em;
@@ -2766,6 +2766,45 @@ progress::-moz-progress-bar {
 }
 .landing-hero .mentor-visual {
   min-height: 390px;
+}
+.landing-problem {
+  padding: 48px 0;
+  border-block: 1px solid var(--border);
+  max-width: 850px;
+}
+.landing-problem h2, .landing-method h2 {
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.landing-problem p, .landing-journey p {
+  color: var(--soft);
+  line-height: 1.8;
+  max-width: 65ch;
+  margin-top: 16px;
+}
+.landing-method { padding: 56px 0; }
+.landing-journey {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 28px;
+  padding: 0;
+  margin-top: 32px;
+}
+.landing-journey h3 { color: var(--mint); font-size: 18px; }
+.landing-journey p { font-size: 14px; margin-top: 12px; }
+.session-feedback { display: grid; gap: 16px; }
+.session-feedback h3 { font-size: 20px; }
+.session-feedback .segmented-actions { flex-wrap: wrap; }
+.session-feedback button { min-height: 44px; }
+.session-feedback button[aria-pressed="true"] {
+  color: var(--mint);
+  border-color: var(--mint);
+}
+@media (max-width: 1100px) {
+  .landing-journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .landing-steps {
   display: grid;
@@ -2865,6 +2904,8 @@ progress::-moz-progress-bar {
   margin-bottom: 18px;
 }
 @media (max-width: 760px) {
+  .landing-journey { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .landing-problem, .landing-method { padding-block: 32px; }
   .landing-nav {
     height: 80px;
   }

@@ -585,6 +585,32 @@ export function applyAction(
       event(state, "project_decision_saved", at);
       break;
     }
+    case "session_feedback": {
+      requireThat(
+        state.sessions.some(
+          (s) =>
+            s.id === action.session_id &&
+            s.completedAt &&
+            s.kind !== "diagnostic",
+        ),
+        "Отзыв можно оставить только о своём завершённом занятии.",
+      );
+      const entries = (state.sessionFeedback ?? []).filter(
+        (f) => f.session_id !== action.session_id,
+      );
+      requireThat(entries.length < 1000, "История отзывов заполнена.");
+      state.sessionFeedback = [
+        ...entries,
+        {
+          session_id: action.session_id,
+          helpful: action.helpful,
+          note: action.note,
+          at,
+        },
+      ];
+      event(state, "session_feedback_saved", at);
+      break;
+    }
     case "feedback": {
       requireThat(
         state.sessions.some((s) => s.id === action.target && s.completedAt) ||

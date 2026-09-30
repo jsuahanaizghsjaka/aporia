@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useProfile } from "./profile-provider";
 import { LearningGate, useLearning } from "./learning-provider";
 import { Feedback } from "./practice";
+import { SessionFeedback } from "./session-feedback";
 import type { Evidence, Session } from "@/lib/learning/types";
 import {
   durationLabel,
@@ -192,7 +193,11 @@ export function SessionBody({ session }: { session: Session }) {
         />
       </details>
       {session.completedAt ? (
-        <Feedback target={session.id} />
+        session.kind === "diagnostic" ? (
+          <Feedback target={session.id} />
+        ) : (
+          <SessionFeedback key={session.id} sessionId={session.id} />
+        )
       ) : view.state.activeSession === session.id ? (
         <Link
           className="text-link"

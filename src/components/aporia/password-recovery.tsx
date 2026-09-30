@@ -175,9 +175,22 @@ export function PasswordRecovery({
           </form>
         )}
         {message && (
-          <p className="status-message mt-5" role="status">
-            {message}
-          </p>
+          <div className="mt-5">
+            <p className="status-message" role="status">
+              {message}
+            </p>
+            {!reset && (
+              <p className="quiet-copy mt-4">
+                Письма нет? Проверь точный адрес регистрации, включая часть
+                после «+», если она была. Предпросмотр работает без аккаунта.
+                Если ты только смотрел демо,{" "}
+                <Link className="text-link" href="/signup">
+                  создай аккаунт
+                </Link>
+                .
+              </p>
+            )}
+          </div>
         )}
         {reset && !allowed && (
           <Link className="primary-button mt-5" href="/forgot-password">

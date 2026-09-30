@@ -82,6 +82,10 @@ export function fakeAI(body, res, controls) {
     );
   }
   res.writeHead(200, { "Content-Type": "text/event-stream" });
+  if (mode === "stream-quota")
+    return res.end(
+      `data: ${JSON.stringify({ type: "error", code: "credit_balance_exhausted", message: "PRIVATE_PROVIDER_DETAIL" })}\n\n`,
+    );
   if (mode === "malformed") return res.end("data: {invalid}\n\n");
   const action = controls.onboardingAction ?? {
     name: "record_onboarding",

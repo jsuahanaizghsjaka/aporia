@@ -1,4 +1,4 @@
-import { AIError, retryAfterSeconds } from "./errors.ts";
+import { AIError, isAIQuotaCode, retryAfterSeconds } from "./errors.ts";
 export function createAIClient(options: {
   apiKey: string;
   model: string;
@@ -44,14 +44,7 @@ export function createAIClient(options: {
       if (!response.ok) {
         if (response.status === 429) {
           const data = await response.json().catch(() => null);
-          const quota = [
-            "insufficient_quota",
-            "credit_balance_exhausted",
-            "billing_hard_limit_reached",
-            "organization_usage_limit_reached",
-            "organization_spend_limit_exceeded",
-            "project_spend_limit_exceeded",
-          ].includes(data?.error?.code);
+          const quota = isAIQuotaCode(data?.error?.code);
           throw new AIError(
             quota ? "AI_QUOTA" : "AI_RATE_LIMIT",
             quota

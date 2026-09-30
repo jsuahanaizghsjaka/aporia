@@ -1,6 +1,7 @@
 import { curriculum } from "./curriculum.ts";
 import type { LearningProfile, LearningState, SkillId } from "./types.ts";
 export const initialLearningState = (): LearningState => ({
+  sessionFeedback: [],
   resourceSelections: [],
   weeklyReviews: [],
   schema: 1,

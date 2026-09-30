@@ -5,7 +5,11 @@ import { expect as baseExpect } from "playwright/test";
 import { startAuthApp } from "./helpers/auth-app.mjs";
 import { statement, updates } from "./helpers/onboarding-data.mjs";
 const expect = baseExpect.configure({ timeout: 20000 }),
-  app = await startAuthApp({ withAI: true, aiTimeoutMs: 5000 });
+  app = await startAuthApp({
+    withAI: true,
+    withLearning: true,
+    aiTimeoutMs: 5000,
+  });
 let browser, page;
 await mkdir("docs/previews", { recursive: true });
 try {

@@ -80,6 +80,24 @@ try {
     200,
   );
   assert.equal(app.controls.aiRequests.length, before);
+  app.controls.aiMode = "stream-quota";
+  const beforeStreamFailure = app.messages.filter(
+    (m) => m.role === "assistant",
+  ).length;
+  await assert.rejects(
+    read(await send("Тест лимита внутри потока")),
+    (error) => {
+      assert.equal(error.retryable, false);
+      assert.match(error.message, /Лимит сервиса AI исчерпан/);
+      assert.doesNotMatch(error.message, /PRIVATE_PROVIDER_DETAIL/);
+      return true;
+    },
+  );
+  assert.equal(
+    app.messages.filter((m) => m.role === "assistant").length,
+    beforeStreamFailure,
+  );
+  app.controls.aiMode = "success";
   app.controls.onboardingAction = {
     name: "record_onboarding",
     reply: "Уточню.",

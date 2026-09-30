@@ -1,5 +1,6 @@
 .git
 node_modules
+node_modules-*
 .next
 .env*
 !.env.example
@@ -7,3 +8,11 @@ node_modules
 .aporia-backups
 .playwright-cli
 *.zip
+.playwright
+tests
+docs
+*.docx
+.~lock.*
+/preview-desktop.png
+/preview-mobile.png
+*.tsbuildinfo
