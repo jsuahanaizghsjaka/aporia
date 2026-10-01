@@ -17,6 +17,7 @@
 
 - Treat `PRODUCT_CONTEXT.md`, `MVP.md`, `IN_MVP.md`, and `NOT_IN_MVP.md` as the current product source of truth.
 - Preserve the narrow MVP: one learner profile, one Python backend track, one daily learning loop, evidence-based mastery, and persistent learning memory.
+- MVP v0.1 feature freeze is active from 2026-10-01: follow `docs/PLAN_STAGES_40_43.md`. Prioritize observed critical bugs, confusing existing flows, prompt/schema reliability and measured latency; put new product features in the post-MVP plan unless the user explicitly changes scope. Never mark alpha/beta or live-service acceptance complete using only fixtures or prepared documents.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
