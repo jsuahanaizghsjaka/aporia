@@ -47,7 +47,7 @@ export function Dashboard() {
           <p>Большая цель. Один понятный шаг сегодня.</p>
         </div>
         <span className="quiet-badge">
-          <Code size={15} /> Python backend
+          <Code size={15} aria-hidden="true" /> Практика: Python backend
         </span>
       </div>
       {ready && <GoalSummary />}
@@ -71,7 +71,7 @@ export function Dashboard() {
             <strong>
               {mastery.weak_skills
                 .map((skill) => skill.skill_id.toUpperCase())
-                .join(" · ") || "Python"}
+                .join(" · ") || "Пока нет"}
             </strong>
             <small>Уровень растёт только после проверенного ответа.</small>
           </div>
@@ -177,7 +177,7 @@ export function Dashboard() {
       <div className="dashboard-lower">
         <section className="route-overview" aria-labelledby="route-heading">
           <div className="section-heading">
-            <h2 id="route-heading">От вопроса — к своему API</h2>
+            <h2 id="route-heading">От вопроса к практике</h2>
             <Link href={href("/roadmap")} className="text-link">
               Весь маршрут <ArrowUpRight size={15} />
             </Link>
@@ -244,7 +244,7 @@ export function Dashboard() {
           <p>
             {profile.goal
               ? `${profile.dailyMinutes} минут в день — время для одного посильного шага.`
-              : "Определим, зачем тебе Python, и выберем первый проект под твои интересы."}
+              : "Определим, что тебе интересно освоить, и сохраним твою цель."}
           </p>
           <Link
             href={href(profile.goal ? "/profile" : "/onboarding")}

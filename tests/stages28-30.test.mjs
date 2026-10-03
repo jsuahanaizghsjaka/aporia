@@ -159,6 +159,15 @@ test("29: eight task prompts have distinct instructions, shared policy and versi
     assert.ok(prompt.length < 2500);
   }
   assert.match(taskPrompt("diagnostic"), /Не раскрывай ответы/);
+  assert.doesNotMatch(
+    taskPrompt("onboarding"),
+    /Ты личный ментор Python backend/,
+  );
+  assert.match(
+    taskPrompt("onboarding"),
+    /Не приписывай пользователю Python backend/,
+  );
+  assert.match(taskPrompt("goal"), /направлении, которое назвал пользователь/);
   assert.match(taskPrompt("exercise"), /ASK → HINT_1/);
   assert.match(taskPrompt("projectHelp"), /подтверждения/);
 });

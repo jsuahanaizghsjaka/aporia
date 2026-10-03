@@ -208,7 +208,10 @@ try {
       });
       await page.goto(app.base);
       await expect(page.getByRole("heading", { level: 1 })).toContainText(
-        "Python backend",
+        "твоей цели",
+      );
+      await expect(page.locator(".landing-hero")).toContainText(
+        "первый практический трек посвящён Python backend",
       );
       await expect(page.locator(".landing-journey li")).toHaveCount(5);
       const start = page.getByRole("link", { name: "Начать обучение" }).first();

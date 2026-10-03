@@ -55,11 +55,13 @@ export async function GET(request: Request) {
     .eq("conversation", conversation.data)
     .order("created_at", { ascending: false })
     .limit(100);
-  if (error)
+  if (error) {
+    console.error("mentor.history.read_failed", { code: error.code });
     return Response.json(
       { error: "Не удалось загрузить разговор. Обнови страницу." },
       { status: 503 },
     );
+  }
   return Response.json(
     {
       messages: data
@@ -129,11 +131,13 @@ export async function POST(request: Request) {
     .select("role, content, conversation, onboarding")
     .eq("user_id", user.id)
     .eq("request_id", input.requestId);
-  if (existingError)
+  if (existingError) {
+    console.error("mentor.history.check_failed", { code: existingError.code });
     return Response.json(
       { error: "Не удалось проверить историю разговора." },
       { status: 503 },
     );
+  }
   if (
     existing?.some(
       (message) =>
@@ -216,11 +220,15 @@ export async function POST(request: Request) {
       .limit(40),
     client.from("profiles").select("data").eq("id", user.id).maybeSingle(),
   ]);
-  if (historyError || profileError)
+  if (historyError || profileError) {
+    console.error("mentor.memory.read_failed", {
+      code: historyError?.code ?? profileError?.code,
+    });
     return Response.json(
       { error: "Память временно недоступна. Повтори отправку позже." },
       { status: 503 },
     );
+  }
   const onboardingState = readOnboardingState(
     history.find((m) => m.role === "assistant" && m.onboarding)?.onboarding,
   );

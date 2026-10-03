@@ -107,12 +107,19 @@ test("live doctor only reads metadata, never reads learner rows or calls a paid 
     return Response.json(data);
   };
   const report = await probeServices(configured, fetcher);
-  assert.equal(calls.length, 5);
+  assert.equal(calls.length, 6);
   assert.ok(report.every((check) => check.status === "pass"));
   assert.ok(
     calls
-      .filter((call) => /profiles\?|learning_states\?/.test(call.url))
+      .filter((call) =>
+        /profiles\?|learning_states\?|mentor_messages\?/.test(call.url),
+      )
       .every((call) => call.url.endsWith("limit=0")),
+  );
+  assert.ok(
+    calls.some((call) =>
+      call.url.endsWith("/mentor_messages?select=id,onboarding&limit=0"),
+    ),
   );
   assert.ok(!calls.some((call) => call.url.includes("/responses")));
   assert.ok(!JSON.stringify(report).includes("sk-test-secret"));
@@ -121,6 +128,30 @@ test("live doctor only reads metadata, never reads learner rows or calls a paid 
     called = true;
   });
   assert.equal(called, false);
+});
+test("live doctor flags the exact missing onboarding column before release", async () => {
+  const report = await probeServices(configured, async (url) =>
+    url.includes("/mentor_messages?")
+      ? Response.json({ code: "42703" }, { status: 400 })
+      : Response.json(
+          url.endsWith("/settings")
+            ? { external: { email: true } }
+            : url.includes("limit=0")
+              ? []
+              : url.includes("/bucket/")
+                ? {
+                    public: false,
+                    allowed_mime_types: ["image/webp"],
+                    file_size_limit: 1048576,
+                  }
+                : { id: "test-model" },
+        ),
+  );
+  assert.equal(
+    report.find((check) => check.name === "mentor-onboarding-schema")?.status,
+    "fail",
+  );
+  assert.ok(!JSON.stringify(report).includes("42703"));
 });
 test("live doctor reports unavailable services without exposing their bodies or exceptions", async () => {
   const report = await probeServices(configured, async () => {

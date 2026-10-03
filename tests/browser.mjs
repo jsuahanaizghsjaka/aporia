@@ -65,6 +65,9 @@ try {
     assert.equal(app.profiles.get(owner).version, 0);
     await page.goto(app.base + "/dashboard");
     await expect(page).toHaveURL(app.base + "/onboarding");
+    await expect(page.locator(".lesson-note").last()).toContainText(
+      "только по Python backend",
+    );
     await page
       .getByRole("button", { name: "Начать знакомство", exact: true })
       .click();
@@ -83,6 +86,28 @@ try {
     await expect(input).toBeEnabled();
     await expect(page).toHaveURL(app.base + "/onboarding");
     assert.equal(app.profiles.get(owner).version, 0);
+    expectedNetworkError = true;
+    await page.route("**/api/mentor?conversation=onboarding", (route) =>
+      route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "История недоступна" }),
+      }),
+    );
+    await page.reload();
+    await page
+      .getByRole("button", { name: "Начать знакомство", exact: true })
+      .click();
+    await expect(page.locator(".notice[role='alert']")).toContainText(
+      "Не удалось загрузить историю разговора",
+    );
+    await expect(input).toBeDisabled();
+    await page
+      .getByRole("button", { name: "Продолжить знакомство без AI" })
+      .click();
+    await expect(page.locator(".chat-header")).toContainText("без AI");
+    await page.unroute("**/api/mentor?conversation=onboarding");
+    expectedNetworkError = false;
     await page.reload();
     await page
       .getByRole("button", { name: "Начать знакомство", exact: true })
@@ -131,7 +156,7 @@ try {
     await expect(page.locator(".lesson-summary")).toContainText("Нет проектов");
     await page.getByRole("button", { name: "Исправить профиль" }).click();
     await page
-      .getByLabel("Одна цель в Python backend")
+      .getByLabel("Направление и цель обучения")
       .fill("API личной библиотеки");
     await page.getByRole("button", { name: "Вернуться к разговору" }).click();
     await page

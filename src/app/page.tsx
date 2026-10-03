@@ -3,13 +3,13 @@ import { supabaseConfig } from "@/lib/supabase/config";
 import { Landing } from "@/components/aporia/landing";
 import type { Metadata } from "next";
 export const metadata: Metadata = {
-  title: "Персональный ментор по Python backend",
+  title: "Aporia: ментор для твоей учебной цели",
   description:
-    "Aporia помнит твою цель, строит маршрут обучения и помогает освоить Python backend через практику и собственный проект.",
+    "Aporia помогает определить и сохранить учебную цель. Первый доступный практический трек — Python backend.",
   openGraph: {
-    title: "Aporia: твой следующий шаг в Python backend",
+    title: "Aporia: начни со своей цели",
     description:
-      "Знакомство, персональный маршрут, практика и собственный проект. Прогресс подтверждается решениями задач.",
+      "Выбери направление и сохрани цель. Первый практический трек — Python backend; прогресс подтверждается решениями задач.",
     type: "website",
     locale: "ru_RU",
   },

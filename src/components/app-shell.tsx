@@ -115,10 +115,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <Navigation />
         <div className="sidebar-bottom">
           <div className="track-stamp">
-            <span className="track-symbol">Py</span>
+            <span className="track-symbol">A</span>
             <div>
-              <strong>Python backend</strong>
-              <span>Твой учебный маршрут</span>
+              <strong>
+                {profile.goal ? "Твоя цель" : "Выбери направление"}
+              </strong>
+              <span>Практика пока: Python backend</span>
             </div>
           </div>
           <Link className="sidebar-profile" href={href("/profile")}>
@@ -213,7 +215,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           <span>
             aporia <span>·</span> маленькие шаги, глубокое понимание
           </span>
-          <span>PYTHON BACKEND / 01</span>
         </footer>
       </div>
     </div>

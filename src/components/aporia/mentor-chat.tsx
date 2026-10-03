@@ -33,7 +33,7 @@ type Message = {
   incomplete?: boolean;
 };
 const welcome =
-  "Привет, я Aporia. Помогу тебе разобраться в Python и дойти до своего backend-проекта.\n\nЧто тебе хотелось бы уметь делать и зачем тебе это сейчас?";
+  "Привет, я Aporia. Начнём с твоей цели, без готового направления за тебя.\n\nКак к тебе обращаться?";
 
 function Conversation({
   conversation,
@@ -48,6 +48,7 @@ function Conversation({
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(!preview);
   const [configured, setConfigured] = useState(false);
+  const [historyUnavailable, setHistoryUnavailable] = useState(false);
   const [error, setError] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [retryUntil, setRetryUntil] = useState(0),
@@ -72,7 +73,7 @@ function Conversation({
         : welcome
       : conversation === "help"
         ? "С чем нужна помощь? Расскажи о задаче и приложи код или текст ошибки — разберём по существу."
-        : "Что сегодня хочешь понять в Python? Расскажи, что уже попробовал: начнём с твоей идеи и найдём следующий шаг.";
+        : "Что хочешь разобрать в доступном треке Python backend? Расскажи, что уже пробовал, и найдём следующий шаг.";
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -92,6 +93,7 @@ function Conversation({
         if (controller.signal.aborted) return;
         setMessages(result.messages);
         setConfigured(result.configured);
+        setHistoryUnavailable(false);
         const snapshot = reviewSnapshotSchema.safeParse(result.onboarding);
         setOnboardingReview(snapshot.success ? snapshot.data : null);
         const last = result.messages.at(-1);
@@ -103,10 +105,11 @@ function Conversation({
         } else setFailed(null);
       })
       .catch(() => {
-        if (!controller.signal.aborted)
-          setError(
-            "Не удалось загрузить разговор. Попробуй подключиться снова.",
-          );
+        if (!controller.signal.aborted) {
+          setConfigured(false);
+          setHistoryUnavailable(true);
+          setError("");
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -249,7 +252,13 @@ function Conversation({
                     : "помощь с задачей"}
               </span>
             </strong>
-            <span>{busy ? "Думаю над ответом…" : "Python backend"}</span>
+            <span>
+              {busy
+                ? "Думаю над ответом…"
+                : conversation === "onboarding"
+                  ? "Направление выбираешь ты"
+                  : "Практика: Python backend"}
+            </span>
           </div>
           <div
             className="chat-messages"
@@ -283,10 +292,15 @@ function Conversation({
             )}
           </div>
           {(preview || (!loading && !configured)) && (
-            <p className="notice mx-4 !mb-3">
+            <p
+              className="notice mx-4 !mb-3"
+              role={historyUnavailable ? "alert" : undefined}
+            >
               {preview
                 ? "Это предпросмотр диалога. Для разговора с AI нужен аккаунт."
-                : "Ментор временно недоступен. Твой профиль и история сохранены."}
+                : historyUnavailable
+                  ? "Не удалось загрузить историю разговора. Это не означает, что AI отключён. Проверь подключение ещё раз или продолжи без AI."
+                  : "AI сейчас не настроен. Можно заполнить профиль без него."}
               {onReview && (
                 <>
                   {" "}
@@ -309,7 +323,9 @@ function Conversation({
                 className="text-link mx-5 mb-3"
                 onClick={reloadConnection}
               >
-                Проверить подключение снова
+                {historyUnavailable
+                  ? "Повторить загрузку истории"
+                  : "Проверить подключение снова"}
               </button>
             )}
           {error && (

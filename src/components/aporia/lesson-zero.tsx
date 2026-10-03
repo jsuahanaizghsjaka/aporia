@@ -283,6 +283,11 @@ export function LessonZero({
               Подготовленное знакомство работает без AI. Ответы переходят в
               профиль без автоматических догадок.
             </p>
+            <p className="lesson-note">
+              Направление выбираешь ты. Проверяемые задания и диагностика пока
+              доступны только по Python backend; другую цель мы сохраним без
+              подмены.
+            </p>
           </div>
           <MentorVisual />
         </section>
@@ -411,7 +416,25 @@ export function LessonZero({
         renderAI &&
         stage !== "intro" &&
         stage !== "complete" && (
-          <div hidden={stage !== "ai"}>{renderAI(openAIReview)}</div>
+          <div hidden={stage !== "ai"}>
+            <div className="form-actions mb-5">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setActiveMode("guided");
+                  setStage("guided");
+                }}
+              >
+                Продолжить знакомство без AI
+              </button>
+              <p className="lesson-note">
+                Ответы по шагам начнутся сначала; разговор с AI останется в
+                истории аккаунта.
+              </p>
+            </div>
+            {renderAI(openAIReview)}
+          </div>
         )}
       {stage === "review" && (
         <ProfileReview

@@ -62,7 +62,7 @@ export function GoalSummary() {
   const { href } = useProfile();
   return (
     <section className="glass-panel goal-panel" aria-label="Учебная цель">
-      <span className="eyebrow">ОДНА ЦЕЛЬ · PYTHON BACKEND</span>
+      <span className="eyebrow">ТВОЯ УЧЕБНАЯ ЦЕЛЬ</span>
       <h2>
         {loaded
           ? (goal?.summary ?? "Какой результат ты хочешь получить?")

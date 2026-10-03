@@ -160,6 +160,19 @@ test("invalid credentials and rate limits never disclose provider errors or acco
     assert.equal(calls.length, 1);
   }
 });
+test("signup service failures do not blame valid credentials or expose SMTP details", async () => {
+  const { client } = fixture({
+    error: { status: 500, message: '535 "Authentication credentials invalid"' },
+  });
+  const result = await authenticate(
+    client,
+    { ...credentials, action: "signup" },
+    "https://aporiax1.vercel.app",
+  );
+  assert.equal(result.status, 503);
+  assert.match(result.body.error, /ошибка сервиса/);
+  assert.doesNotMatch(result.body.error, /Проверь данные|535|SMTP/);
+});
 test("missing profiles, DB failures and incomplete sessions never masquerade as successful login", async () => {
   for (const options of [
     { missing: true },

@@ -2,7 +2,7 @@ import { profileSchema, type ProfileView } from "../profile/schema.ts";
 
 export const profileTextFields = [
   { key: "displayName", label: "Как тебя называть", limit: 60 },
-  { key: "goal", label: "Одна цель в Python backend", limit: 500 },
+  { key: "goal", label: "Направление и цель обучения", limit: 500 },
   { key: "context", label: "Твоя текущая ситуация", limit: 1000 },
   { key: "experience", label: "Что уже умеешь", limit: 1000 },
   { key: "workStudy", label: "Работа и учёба", limit: 1000 },
@@ -26,7 +26,7 @@ export const questions: readonly Question[] = [
   {
     key: "displayName",
     prompt:
-      "Привет, я Aporia. Будем двигаться к твоему Python backend-проекту в подходящем тебе темпе. Как тебя называть?",
+      "Привет, я Aporia. Начнём с того, что важно тебе, и выберем подходящий темп. Как тебя называть?",
     placeholder: "Имя или удобное обращение…",
     reply: "Приятно познакомиться.",
     optional: false,
@@ -34,8 +34,7 @@ export const questions: readonly Question[] = [
   },
   {
     key: "context",
-    prompt:
-      "Что происходит в твоей жизни сейчас, из-за чего захотелось заняться программированием?",
+    prompt: "Что сейчас подтолкнуло тебя начать учиться?",
     placeholder: "Можно начать с пары слов…",
     reply: "Спасибо, это наша отправная точка.",
     optional: true,
@@ -43,15 +42,16 @@ export const questions: readonly Question[] = [
   },
   {
     key: "goal",
-    prompt: "Какую одну вещь ты хочешь научиться делать с Python backend?",
-    placeholder: "Например, создать API для своего приложения…",
+    prompt:
+      "Какое направление или стек тебе интересны и к какому результату хочешь прийти?",
+    placeholder: "Напиши направление и желаемый результат своими словами…",
     reply: "Будем держать эту цель в фокусе.",
     optional: false,
     limit: 500,
   },
   {
     key: "experience",
-    prompt: "Что из программирования ты уже пробовал?",
+    prompt: "Что в этом направлении ты уже пробовал?",
     placeholder: "Даже небольшой опыт считается; можно начать с нуля…",
     reply:
       "Это поможет выбрать, с чего начать. Уровень позже проверим на практике.",

@@ -138,6 +138,12 @@ export async function probeServices(
       validate: Array.isArray,
     },
     {
+      name: "mentor-onboarding-schema",
+      url: `${root}/rest/v1/mentor_messages?select=id,onboarding&limit=0`,
+      headers: headers(secretKey),
+      validate: Array.isArray,
+    },
+    {
       name: "avatars",
       url: `${root}/storage/v1/bucket/avatars`,
       headers: headers(secretKey),

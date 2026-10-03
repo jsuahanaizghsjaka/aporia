@@ -21,6 +21,24 @@ const answers = {
   dailyMinutes: "30 минут",
   currentProjects: "Приложение для учёбы",
 };
+test("Lesson 0 lets the learner choose a direction instead of assigning Python backend", () => {
+  const start = beginLesson(emptyProfile);
+  assert.doesNotMatch(start.messages[0].content, /Python|backend/i);
+  const goalQuestion = questions.find((question) => question.key === "goal");
+  assert.match(goalQuestion.prompt, /направление или стек/);
+  const draft = {
+    ...start,
+    index: questions.findIndex((question) => question.key === "goal"),
+  };
+  const result = answerLesson(
+    draft,
+    "Хочу изучать UX-дизайн и собрать доступный интерфейс",
+  );
+  assert.equal(
+    result.profile.goal,
+    "Хочу изучать UX-дизайн и собрать доступный интерфейс",
+  );
+});
 test("Lesson 0 covers every required topic one at a time and prepares, but never confirms, a profile", () => {
   let state = beginLesson(emptyProfile);
   assert.equal(state.messages.length, 1);
